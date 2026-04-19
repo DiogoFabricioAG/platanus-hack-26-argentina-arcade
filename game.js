@@ -1,65 +1,139 @@
-// Platanus Hack 26 — Buenos Aires Edition
-// Two-player brick duel. Dash with Button 1, break the word, keep your paddle alive.
-
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
-const STORAGE_KEY = 'platanus-hack-26-standard-highscores';
-const MAX_HIGH_SCORES = 5;
-const WINNING_NAME_LENGTH = 3;
+const PENALTIES_PER_SIDE = 5;
+const STORAGE_KEY = "world-penalty-26-highscores-v1";
+const MAX_HIGH_SCORES = 8;
 
 const COLORS = {
-  background: 0x0b0f03,
-  frame: 0x3a3a0a,
-  accent: 0xe1ff00,
-  accentSoft: 0xa8c700,
-  p1: 0xe1ff00,
-  p2: 0xff6ec7,
-  red: 0xff7a7a,
-  white: 0xf7ffd8,
-  slate: 0xb8c48d,
-  cell: 0x1a1e05,
-  overlay: 0x0c0e02,
-  backdrop: 0x030504,
-  fieldBg: 0x0a0d0b,
-  brickA: 0x3f4a0e,
-  brickB: 0x6b7f14,
-  brickC: 0xa8c700,
-  brickD: 0xe1ff00,
+  bg: 0x08130d,
+  bgDark: 0x030705,
+  panel: 0x102117,
+  panel2: 0x173021,
+  frame: 0x3f7f4f,
+  accent: 0xe8ff6a,
+  accentSoft: 0xb2c957,
+  text: 0xf3ffe9,
+  subtext: 0x8fb18e,
+  danger: 0xff7f7f,
+  goal: 0x5dff89,
+  save: 0x7ec4ff,
+  miss: 0xffb06a,
+  turf: 0x1f5f35,
+  turf2: 0x2f7f45,
+  line: 0xdfffd4,
+  shadow: 0x0a120e,
 };
 
-const LETTER_GRID = [
-  ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-  ['H', 'I', 'J', 'K', 'L', 'M', 'N'],
-  ['O', 'P', 'Q', 'R', 'S', 'T', 'U'],
-  ['V', 'W', 'X', 'Y', 'Z', '.', '-'],
-  ['DEL', 'END'],
+const TEAMS = [
+  {
+    code: "ARG",
+    name: "Argentina",
+    primary: 0x78cdfc,
+    secondary: 0xffffff,
+    attack: 0.09,
+    keep: 0.02,
+    clutch: 0.07,
+    trait: "Precision alta",
+  },
+  {
+    code: "BRA",
+    name: "Brasil",
+    primary: 0xfde047,
+    secondary: 0x0a6e3a,
+    attack: 0.08,
+    keep: 0.01,
+    clutch: 0.04,
+    trait: "Tiro impredecible",
+  },
+  {
+    code: "URU",
+    name: "Uruguay",
+    primary: 0x93c5fd,
+    secondary: 0x0f172a,
+    attack: 0.05,
+    keep: 0.03,
+    clutch: 0.05,
+    trait: "Potencia de disparo",
+  },
+  {
+    code: "COL",
+    name: "Colombia",
+    primary: 0xfacc15,
+    secondary: 0x1d4ed8,
+    attack: 0.04,
+    keep: 0.04,
+    clutch: 0.03,
+    trait: "Balance total",
+  },
+  {
+    code: "MEX",
+    name: "Mexico",
+    primary: 0x22c55e,
+    secondary: 0xffffff,
+    attack: 0.05,
+    keep: 0.02,
+    clutch: 0.09,
+    trait: "Crece bajo presion",
+  },
+  {
+    code: "USA",
+    name: "Estados Unidos",
+    primary: 0x60a5fa,
+    secondary: 0xef4444,
+    attack: 0.03,
+    keep: 0.08,
+    clutch: 0.03,
+    trait: "Arquero estable",
+  },
+  {
+    code: "FRA",
+    name: "Francia",
+    primary: 0x2563eb,
+    secondary: 0xf8fafc,
+    attack: 0.07,
+    keep: 0.03,
+    clutch: 0.04,
+    trait: "Lectura dificil",
+  },
+  {
+    code: "ESP",
+    name: "Espana",
+    primary: 0xdc2626,
+    secondary: 0xfacc15,
+    attack: 0.06,
+    keep: 0.04,
+    clutch: 0.04,
+    trait: "Colocacion tecnica",
+  },
 ];
+
+const BACK_CODES = ["P1_6", "P2_6"];
 
 // DO NOT replace existing keys — they match the physical arcade cabinet wiring.
 // To add local testing shortcuts, append extra keys to any array.
 const CABINET_KEYS = {
-  P1_U: ['w'],
-  P1_D: ['s'],
-  P1_L: ['a'],
-  P1_R: ['d'],
-  P1_1: ['u'],
-  P1_2: ['i'],
-  P1_3: ['o'],
-  P1_4: ['j'],
-  P1_5: ['k'],
-  P1_6: ['l'],
-  P2_U: ['ArrowUp'],
-  P2_D: ['ArrowDown'],
-  P2_L: ['ArrowLeft'],
-  P2_R: ['ArrowRight'],
-  P2_1: ['r'],
-  P2_2: ['t'],
-  P2_3: ['y'],
-  P2_4: ['f'],
-  P2_5: ['g'],
-  P2_6: ['h'],
-  START1: ['Enter'],
-  START2: ['2'],
+  P1_U: ["w"],
+  P1_D: ["s"],
+  P1_L: ["a"],
+  P1_R: ["d"],
+  P1_1: ["u"],
+  P1_2: ["i"],
+  P1_3: ["o"],
+  P1_4: ["j"],
+  P1_5: ["k"],
+  P1_6: ["l"],
+  P2_U: ["ArrowUp"],
+  P2_D: ["ArrowDown"],
+  P2_L: ["ArrowLeft"],
+  P2_R: ["ArrowRight"],
+  P2_1: ["r"],
+  P2_2: ["t"],
+  P2_3: ["y"],
+  P2_4: ["f"],
+  P2_5: ["g"],
+  P2_6: ["h"],
+  START1: ["Enter"],
+  START2: ["2"],
 };
 
 const KEYBOARD_TO_ARCADE = {};
@@ -73,15 +147,8 @@ const config = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  parent: 'game-root',
-  backgroundColor: '#0b0f03',
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 0 },
-      debug: false,
-    },
-  },
+  parent: "game-root",
+  backgroundColor: "#08130d",
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -103,113 +170,98 @@ function create() {
   const scene = this;
 
   scene.state = {
-    phase: 'loading',
-    scores: { p1: 0, p2: 0 },
-    remainingBricks: 0,
-    highScores: [],
-    winner: null,
-    winnerLabel: '',
-    saveStatus: 'Loading scores...',
+    phase: "loading",
+    mode: "tournament",
     menu: { cursor: 0, cooldown: 0, lastAxis: 0 },
-    dash: {
-      p1: { activeUntil: 0, cooldownUntil: 0, dir: 0 },
-      p2: { activeUntil: 0, cooldownUntil: 0, dir: 0 },
+    finalMenu: { cursor: 0, cooldown: 0, lastAxis: 0 },
+    select: {
+      mode: "tournament",
+      step: "p1",
+      p1Team: 0,
+      p2Team: 1,
+      cursor: 0,
+      cooldown: 0,
+      lastAxisX: 0,
+      lastAxisY: 0,
+      message: "",
     },
-    nameEntry: {
-      letters: [],
-      row: 0,
-      col: 0,
-      moveCooldownUntil: 0,
-      confirmCooldownUntil: 0,
-      lastMoveVector: { x: 0, y: 0 },
-    },
+    tournament: null,
+    match: null,
+    finalContext: "menu",
+    finalOptions: ["MENU"],
+    finalPayload: null,
+    highScores: [],
+    saveStatus: "Loading scoreboard...",
   };
 
-  scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.background);
-  scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 760, 560, 0x141a04, 0.94).setStrokeStyle(4, COLORS.frame, 0.8);
-
   createBackground(scene);
-  createHud(scene);
-  createPlayfield(scene);
-  createEndGameUi(scene);
-  createStartScreen(scene);
-  createLeaderboardScreen(scene);
-  createControlsScreen(scene);
-  createPauseScreen(scene);
   createControls(scene);
-  showStartScreen(scene);
+  createMenuScreen(scene);
+  createTeamSelectScreen(scene);
+  createBracketScreen(scene);
+  createMatchScreen(scene);
+  createFinalScreen(scene);
+  createLeaderboardScreen(scene);
+
+  hideAllScreens(scene);
+  showMenu(scene);
 
   loadHighScores()
-    .then((highScores) => {
-      scene.state.highScores = highScores;
-      scene.state.saveStatus = 'Finish a duel to save a score.';
-      refreshLeaderboard(scene);
-      refreshStartScreenLeaderboard(scene);
+    .then((scores) => {
+      scene.state.highScores = scores;
+      scene.state.saveStatus = "Scoreboard ready.";
+      refreshLeaderboardScreen(scene);
     })
     .catch(() => {
       scene.state.highScores = [];
-      scene.state.saveStatus = 'Storage unavailable. Match runs without saves.';
-      refreshLeaderboard(scene);
-      refreshStartScreenLeaderboard(scene);
+      scene.state.saveStatus = "Storage unavailable.";
+      refreshLeaderboardScreen(scene);
     });
 }
 
-function update(time, delta) {
+function update(time) {
   const scene = this;
   if (!scene.state) {
     return;
   }
 
-  const phase = scene.state.phase;
-
-  if (phase === 'start') {
-    handleStartMenu(scene, time);
+  if (scene.state.phase === "menu") {
+    handleMenuInput(scene, time);
     return;
   }
 
-  if (phase === 'leaderboard') {
-    if (consumeAnyPressedControl(scene, ['START1', 'START2', 'P1_1', 'P2_1', 'P1_2', 'P2_2'])) {
-      scene.leaderScreen.container.setVisible(false);
-      showStartScreen(scene);
-    }
+  if (scene.state.phase === "teamSelect") {
+    handleTeamSelectInput(scene, time);
     return;
   }
 
-  if (phase === 'controls') {
-    if (consumeAnyPressedControl(scene, ['START1', 'START2', 'P1_1', 'P2_1', 'P1_2', 'P2_2'])) {
-      scene.controlsScreen.container.setVisible(false);
-      showStartScreen(scene);
-    }
+  if (scene.state.phase === "bracket") {
+    handleBracketInput(scene);
     return;
   }
 
-  if (phase === 'playing') {
-    updatePaddles(scene, delta, time);
-    updateBallGhostStates(scene);
-    updateBallTrails(scene, time);
-    checkBallEscape(scene);
-    if (consumeAnyPressedControl(scene, ['START1', 'START2'])) {
-      pauseMatch(scene);
-    }
+  if (scene.state.phase === "leaderboard") {
+    handleLeaderboardInput(scene);
     return;
   }
 
-  if (phase === 'paused') {
-    if (consumeAnyPressedControl(scene, ['START1', 'START2'])) {
-      resumeMatch(scene);
-    }
+  if (scene.state.phase === "matchInput") {
+    handleMatchInput(scene, time);
     return;
   }
 
-  if (phase === 'gameover') {
-    handleNameEntry(scene, time);
+  if (scene.state.phase === "matchReveal") {
+    handleMatchReveal(scene, time);
     return;
   }
 
-  if (phase === 'saved') {
-    if (consumeAnyPressedControl(scene, ['START1', 'START2', 'P1_1', 'P2_1', 'P1_2', 'P2_2'])) {
-      returnToStart(scene);
-    }
+  if (scene.state.phase === "matchResult") {
+    handleMatchResult(scene, time);
+    return;
+  }
+
+  if (scene.state.phase === "final") {
+    handleFinalInput(scene, time);
   }
 }
 
@@ -217,333 +269,1954 @@ function createBackground(scene) {
   scene.add.rectangle(
     GAME_WIDTH / 2,
     GAME_HEIGHT / 2,
-    700,
-    450,
-    COLORS.fieldBg,
-    0.18,
-  );
-}
-
-function createHud(scene) {
-  scene.hud = {};
-
-  scene.hud.title = scene.add
-    .text(GAME_WIDTH / 2, 20, 'PLATANUS HACK 26 BRICKS', {
-      fontFamily: 'monospace',
-      fontSize: '22px',
-      color: '#f7fbff',
-      fontStyle: 'bold',
-      align: 'center',
-    })
-    .setOrigin(0.5, 0);
-
-  scene.hud.subtitle = scene.add
-    .text(
-      GAME_WIDTH / 2,
-      48,
-      '',
-      {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#a8ad8a',
-        align: 'center',
-      },
-    )
-    .setOrigin(0.5, 0);
-
-  scene.hud.p1Score = scene.add
-    .text(65, 72, 'P1 00', {
-      fontFamily: 'monospace',
-      fontSize: '28px',
-      color: '#e1ff00',
-      fontStyle: 'bold',
-    })
-    .setOrigin(0, 0.5);
-
-  scene.hud.p2Score = scene.add
-    .text(GAME_WIDTH - 65, 72, 'P2 00', {
-      fontFamily: 'monospace',
-      fontSize: '28px',
-      color: '#ff6ec7',
-      fontStyle: 'bold',
-    })
-    .setOrigin(1, 0.5);
-
-  scene.hud.remaining = scene.add
-    .text(GAME_WIDTH / 2, 72, 'BRICKS 000', {
-      fontFamily: 'monospace',
-      fontSize: '18px',
-      color: '#ffd84d',
-      fontStyle: 'bold',
-    })
-    .setOrigin(0.5);
-
-  scene.hud.status = scene.add
-    .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, '', {
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      color: '#f7fbff',
-      align: 'center',
-    })
-    .setOrigin(0.5);
-
-  scene.hud.scoreColors = {
-    p1: '#e1ff00',
-    p2: '#ff6ec7',
-    penalty: '#ff7a7a',
-  };
-}
-
-function createPlayfield(scene) {
-  scene.playfield = {};
-  const paddleWidth = 112;
-  const paddleHeight = 10;
-  const topBounceLineY = 118;
-  const bottomBounceLineY = GAME_HEIGHT - 72;
-  const wallThickness = 8;
-  const wallGap = 22;
-  const topPaddleY = topBounceLineY - paddleHeight / 2;
-  const bottomPaddleY = bottomBounceLineY + paddleHeight / 2;
-  const topWallY = topBounceLineY - wallGap - wallThickness / 2;
-  const bottomWallY = bottomBounceLineY + wallGap + wallThickness / 2;
-
-  // Walls span full width/height so corners are sealed — balls cannot escape through gaps.
-  scene.playfield.leftWall = scene.add.rectangle(38, GAME_HEIGHT / 2, 14, GAME_HEIGHT, COLORS.frame, 0);
-  scene.playfield.rightWall = scene.add.rectangle(GAME_WIDTH - 38, GAME_HEIGHT / 2, 14, GAME_HEIGHT, COLORS.frame, 0);
-  scene.playfield.topWall = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    topWallY,
-    GAME_WIDTH,
-    wallThickness,
-    COLORS.frame,
-    0,
-  );
-  scene.playfield.bottomWall = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    bottomWallY,
-    GAME_WIDTH,
-    wallThickness,
-    COLORS.frame,
-    0,
-  );
-
-  scene.physics.add.existing(scene.playfield.leftWall, true);
-  scene.physics.add.existing(scene.playfield.rightWall, true);
-  scene.physics.add.existing(scene.playfield.topWall, true);
-  scene.physics.add.existing(scene.playfield.bottomWall, true);
-
-  scene.add.rectangle(
-    GAME_WIDTH / 2,
-    topBounceLineY,
-    700,
-    1,
-    COLORS.frame,
-    0.55,
-  );
-  scene.add.rectangle(
-    GAME_WIDTH / 2,
-    bottomBounceLineY,
-    700,
-    1,
-    COLORS.frame,
-    0.55,
-  );
-
-  scene.playfield.p1Paddle = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    topPaddleY,
-    paddleWidth,
-    paddleHeight,
-    COLORS.p1,
-    1,
-  );
-  scene.playfield.p2Paddle = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    bottomPaddleY,
-    paddleWidth,
-    paddleHeight,
-    COLORS.p2,
-    1,
-  );
-
-  scene.physics.add.existing(scene.playfield.p1Paddle);
-  scene.physics.add.existing(scene.playfield.p2Paddle);
-
-  configurePaddleBody(scene.playfield.p1Paddle.body);
-  configurePaddleBody(scene.playfield.p2Paddle.body);
-
-  scene.playfield.balls = [
-    createBall(scene, GAME_WIDTH / 2 - 120, 170, COLORS.white, 'p1'),
-    createBall(scene, GAME_WIDTH / 2 + 120, GAME_HEIGHT - 170, COLORS.white, 'p2'),
-  ];
-
-  scene.playfield.bricks = scene.physics.add.staticGroup();
-  scene.playfield.ballTrails = scene.add.group();
-
-  for (const ball of scene.playfield.balls) {
-    scene.physics.add.collider(ball, scene.playfield.leftWall);
-    scene.physics.add.collider(ball, scene.playfield.rightWall);
-    scene.physics.add.collider(ball, scene.playfield.topWall);
-    scene.physics.add.collider(ball, scene.playfield.bottomWall);
-    scene.physics.add.collider(
-      ball,
-      scene.playfield.p1Paddle,
-      () => handleBallPaddleCollision(scene, ball, scene.playfield.p1Paddle, 'p1'),
-      () => canBallCollideWithPaddle(ball, 'p1'),
-      scene,
-    );
-    scene.physics.add.collider(
-      ball,
-      scene.playfield.p2Paddle,
-      () => handleBallPaddleCollision(scene, ball, scene.playfield.p2Paddle, 'p2'),
-      () => canBallCollideWithPaddle(ball, 'p2'),
-      scene,
-    );
-    scene.physics.add.collider(
-      ball,
-      scene.playfield.bricks,
-      (_, brick) => handleBallBrickCollision(scene, ball, brick),
-      undefined,
-      scene,
-    );
-  }
-}
-
-function createEndGameUi(scene) {
-  scene.endGame = {};
-
-  scene.endGame.container = scene.add.container(0, 0);
-  scene.endGame.container.setDepth(20);
-  scene.endGame.container.setVisible(false);
-
-  const backdrop = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2,
     GAME_WIDTH,
     GAME_HEIGHT,
-    COLORS.backdrop,
-    0.98,
+    COLORS.bg,
   );
-  scene.endGame.container.add(backdrop);
+  scene.add
+    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 760, 560, COLORS.bgDark, 0.82)
+    .setStrokeStyle(4, COLORS.frame, 0.8);
 
-  scene.endGame.title = scene.add
-    .text(GAME_WIDTH / 2, 88, 'GAME OVER', {
-      fontFamily: 'monospace',
-      fontSize: '30px',
-      color: '#f7ffd8',
-      fontStyle: 'bold',
-    })
-    .setOrigin(0.5);
-
-  scene.endGame.summary = scene.add
-    .text(GAME_WIDTH / 2, 126, '', {
-      fontFamily: 'monospace',
-      fontSize: '22px',
-      color: '#e1ff00',
-      align: 'center',
-    })
-    .setOrigin(0.5);
-
-  scene.endGame.nameLabel = scene.add
-    .text(GAME_WIDTH / 2, 172, '', {
-      fontFamily: 'monospace',
-      fontSize: '13px',
-      color: '#a8ad8a',
-      align: 'center',
-    })
-    .setOrigin(0.5);
-
-  scene.endGame.nameValue = scene.add
-    .text(GAME_WIDTH / 2, 208, '___', {
-      fontFamily: 'monospace',
-      fontSize: '36px',
-      color: '#ff6ec7',
-      fontStyle: 'bold',
-      align: 'center',
-      letterSpacing: 10,
-    })
-    .setOrigin(0.5);
-
-  scene.endGame.instructions = scene.add
-    .text(
+  scene.add
+    .rectangle(
       GAME_WIDTH / 2,
-      242,
-      'MOVE  PICK',
-      {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#a8ad8a',
-        align: 'center',
-      },
+      GAME_HEIGHT / 2 + 90,
+      680,
+      350,
+      COLORS.turf,
+      0.94,
     )
-    .setOrigin(0.5);
+    .setStrokeStyle(2, COLORS.line, 0.45);
+  scene.add
+    .rectangle(GAME_WIDTH / 2, 235, 540, 130, COLORS.turf2, 0.25)
+    .setStrokeStyle(2, COLORS.line, 0.4);
+  scene.add.rectangle(GAME_WIDTH / 2, 162, 300, 18, COLORS.shadow, 0.35);
 
-  scene.endGame.leaderboardTitle = scene.add
-    .text(GAME_WIDTH / 2, 286, 'SCOREBOARD', {
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      color: '#e1ff00',
-      fontStyle: 'bold',
-      align: 'center',
-    })
-    .setOrigin(0.5);
-
-  scene.endGame.gridLabels = [];
-
-  for (let row = 0; row < LETTER_GRID.length; row += 1) {
-    const rowValues = LETTER_GRID[row];
-    const rowWidth = rowValues.length * 56;
-    for (let col = 0; col < rowValues.length; col += 1) {
-      const value = rowValues[col];
-      const cellX = GAME_WIDTH / 2 - rowWidth / 2 + 28 + col * 56;
-      const cellY = 430 + row * 28;
-
-      const cell = scene.add.rectangle(cellX, cellY, value.length > 1 ? 64 : 42, 24, COLORS.cell, 0.95);
-      cell.setStrokeStyle(2, COLORS.frame, 0.8);
-
-      const label = scene.add
-        .text(cellX, cellY, value, {
-          fontFamily: 'monospace',
-          fontSize: value.length > 1 ? '14px' : '18px',
-          color: '#f7fbff',
-          fontStyle: 'bold',
-          align: 'center',
-        })
-        .setOrigin(0.5);
-
-      scene.endGame.gridLabels.push({ cell, label, row, col, value });
-      scene.endGame.container.add(cell);
-      scene.endGame.container.add(label);
-    }
+  const stripeColor = 0x2a7a47;
+  for (let i = 0; i < 8; i += 1) {
+    scene.add.rectangle(
+      140 + i * 74,
+      GAME_HEIGHT / 2 + 92,
+      36,
+      348,
+      stripeColor,
+      i % 2 === 0 ? 0.22 : 0.08,
+    );
   }
 
-  scene.endGame.saveStatus = scene.add
-    .text(GAME_WIDTH / 2, 590, '', {
-      fontFamily: 'monospace',
-      fontSize: '11px',
-      color: '#e1ff00',
-      align: 'center',
+  scene.add
+    .text(GAME_WIDTH / 2, 20, "WORLD PENALTY 26", {
+      fontFamily: "monospace",
+      fontSize: "28px",
+      color: "#f3ffe9",
+      fontStyle: "bold",
+    })
+    .setOrigin(0.5, 0);
+
+  scene.add
+    .text(GAME_WIDTH / 2, 52, "Arcade Shootout", {
+      fontFamily: "monospace",
+      fontSize: "13px",
+      color: "#8fb18e",
+    })
+    .setOrigin(0.5, 0);
+}
+
+function createMenuScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(20);
+  scene.menuScreen = {
+    container: c,
+    buttons: [],
+    subtitle: scene.add
+      .text(GAME_WIDTH / 2, 104, "Selecciona modo", {
+        fontFamily: "monospace",
+        fontSize: "16px",
+        color: "#b2c957",
+      })
+      .setOrigin(0.5),
+    footer: scene.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "MOVE  CONFIRM  B1/B2/START", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: "#8fb18e",
+      })
+      .setOrigin(0.5),
+  };
+
+  c.add(
+    scene.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 520, 320, COLORS.panel, 0.92)
+      .setStrokeStyle(2, COLORS.frame, 0.9),
+  );
+  c.add(scene.menuScreen.subtitle);
+
+  const labels = ["TOURNAMENT", "VERSUS 2P", "LEADERBOARD"];
+  for (let i = 0; i < labels.length; i += 1) {
+    const y = 188 + i * 64;
+    const bg = scene.add
+      .rectangle(GAME_WIDTH / 2, y, 320, 46, COLORS.panel2, 0.95)
+      .setStrokeStyle(2, COLORS.frame, 0.85);
+    const label = scene.add
+      .text(GAME_WIDTH / 2, y, labels[i], {
+        fontFamily: "monospace",
+        fontSize: "24px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    scene.menuScreen.buttons.push({ bg, label });
+    c.add(bg);
+    c.add(label);
+  }
+
+  c.add(scene.menuScreen.footer);
+  c.setVisible(false);
+}
+
+function showMenu(scene) {
+  hideAllScreens(scene);
+  scene.menuScreen.container.setVisible(true);
+  scene.state.phase = "menu";
+  scene.state.menu = { cursor: 0, cooldown: 0, lastAxis: 0 };
+  updateMenuHighlight(scene);
+  clearPressed(scene);
+}
+
+function updateMenuHighlight(scene) {
+  const cursor = scene.state.menu.cursor;
+  for (let i = 0; i < scene.menuScreen.buttons.length; i += 1) {
+    const button = scene.menuScreen.buttons[i];
+    const active = i === cursor;
+    button.bg.setFillStyle(
+      active ? COLORS.accent : COLORS.panel2,
+      active ? 1 : 0.95,
+    );
+    button.bg.setStrokeStyle(
+      2,
+      active ? COLORS.text : COLORS.frame,
+      active ? 1 : 0.85,
+    );
+    button.label.setColor(active ? "#0d1f12" : "#f3ffe9");
+  }
+}
+
+function handleMenuInput(scene, time) {
+  const menu = scene.state.menu;
+  const axisY = getVerticalMenuAxis(scene.controls);
+
+  if (time >= menu.cooldown && axisY !== 0 && axisY !== menu.lastAxis) {
+    menu.cursor = Phaser.Math.Wrap(
+      menu.cursor + axisY,
+      0,
+      scene.menuScreen.buttons.length,
+    );
+    menu.cooldown = time + 160;
+    menu.lastAxis = axisY;
+    updateMenuHighlight(scene);
+    playSound(scene, "click");
+  }
+
+  if (axisY === 0) {
+    menu.lastAxis = 0;
+  }
+
+  if (
+    consumeAnyPressedControl(scene, [
+      "P1_1",
+      "P2_1",
+      "P1_2",
+      "P2_2",
+      "START1",
+      "START2",
+    ])
+  ) {
+    playSound(scene, "select");
+    if (menu.cursor === 0) {
+      startTeamSelect(scene, "tournament");
+      return;
+    }
+    if (menu.cursor === 1) {
+      startTeamSelect(scene, "versus");
+      return;
+    }
+    showLeaderboard(scene);
+  }
+}
+
+function createTeamSelectScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(21);
+  const title = scene.add
+    .text(GAME_WIDTH / 2, 100, "", {
+      fontFamily: "monospace",
+      fontSize: "22px",
+      color: "#e8ff6a",
+      fontStyle: "bold",
+      align: "center",
     })
     .setOrigin(0.5);
 
-  scene.endGame.leaderboard = scene.add
-    .text(GAME_WIDTH / 2, 308, '', {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#f7ffd8',
-      align: 'center',
+  const stepLabel = scene.add
+    .text(GAME_WIDTH / 2, 132, "", {
+      fontFamily: "monospace",
+      fontSize: "14px",
+      color: "#8fb18e",
+    })
+    .setOrigin(0.5);
+
+  const info = scene.add
+    .text(GAME_WIDTH / 2, 388, "", {
+      fontFamily: "monospace",
+      fontSize: "14px",
+      color: "#f3ffe9",
+      align: "center",
       lineSpacing: 4,
     })
     .setOrigin(0.5, 0);
 
-  scene.endGame.container.add(scene.endGame.title);
-  scene.endGame.container.add(scene.endGame.summary);
-  scene.endGame.container.add(scene.endGame.nameLabel);
-  scene.endGame.container.add(scene.endGame.nameValue);
-  scene.endGame.container.add(scene.endGame.instructions);
-  scene.endGame.container.add(scene.endGame.leaderboardTitle);
-  scene.endGame.container.add(scene.endGame.leaderboard);
-  scene.endGame.container.add(scene.endGame.saveStatus);
+  const message = scene.add
+    .text(GAME_WIDTH / 2, 474, "", {
+      fontFamily: "monospace",
+      fontSize: "13px",
+      color: "#ffb06a",
+      align: "center",
+    })
+    .setOrigin(0.5);
+
+  const help = scene.add
+    .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "MOVE  CONFIRM  BACK=B6", {
+      fontFamily: "monospace",
+      fontSize: "11px",
+      color: "#8fb18e",
+    })
+    .setOrigin(0.5);
+
+  scene.teamScreen = {
+    container: c,
+    title,
+    stepLabel,
+    info,
+    message,
+    help,
+    cells: [],
+  };
+
+  c.add(
+    scene.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 620, 430, COLORS.panel, 0.92)
+      .setStrokeStyle(2, COLORS.frame, 0.9),
+  );
+  c.add(title);
+  c.add(stepLabel);
+
+  for (let i = 0; i < TEAMS.length; i += 1) {
+    const col = i % 4;
+    const row = Math.floor(i / 4);
+    const x = 190 + col * 140;
+    const y = 210 + row * 86;
+
+    const bg = scene.add
+      .rectangle(x, y, 128, 66, COLORS.panel2, 0.96)
+      .setStrokeStyle(2, COLORS.frame, 0.9);
+    const code = scene.add
+      .text(x, y + 2, TEAMS[i].code, {
+        fontFamily: "monospace",
+        fontSize: "22px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    const flag = createFlagImage(scene, i, x, y - 20, 36, 22);
+    const name = scene.add
+      .text(x, y + 22, TEAMS[i].name, {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: "#8fb18e",
+      })
+      .setOrigin(0.5);
+
+    scene.teamScreen.cells.push({ bg, code, flag, name, index: i });
+    c.add(bg);
+    c.add(flag);
+    c.add(code);
+    c.add(name);
+  }
+
+  c.add(info);
+  c.add(message);
+  c.add(help);
+  c.setVisible(false);
+}
+
+function startTeamSelect(scene, mode) {
+  scene.state.mode = mode;
+  scene.state.select = {
+    mode,
+    step: "p1",
+    p1Team: 0,
+    p2Team: 1,
+    cursor: 0,
+    cooldown: 0,
+    lastAxisX: 0,
+    lastAxisY: 0,
+    message: "",
+  };
+
+  hideAllScreens(scene);
+  scene.teamScreen.container.setVisible(true);
+  scene.state.phase = "teamSelect";
+  refreshTeamSelectScreen(scene);
+  clearPressed(scene);
+}
+
+function refreshTeamSelectScreen(scene) {
+  const select = scene.state.select;
+  const team = TEAMS[select.cursor];
+
+  scene.teamScreen.title.setText(
+    select.mode === "tournament" ? "TOURNAMENT MODE" : "VERSUS LOCAL 2P",
+  );
+  scene.teamScreen.stepLabel.setText(
+    select.step === "p1" ? "PLAYER 1 ELIGE EQUIPO" : "PLAYER 2 ELIGE EQUIPO",
+  );
+  scene.teamScreen.message.setText(select.message || "");
+
+  const owner = select.step === "p1" ? "P1" : "P2";
+  scene.teamScreen.help.setText(`${owner} MOVE  CONFIRM=B1/B2/START  BACK=B6`);
+
+  scene.teamScreen.info.setText(`${team.name} (${team.code})\n${team.trait}`);
+
+  for (let i = 0; i < scene.teamScreen.cells.length; i += 1) {
+    const cell = scene.teamScreen.cells[i];
+    const isCursor = i === select.cursor;
+    const lockedByP1 = i === select.p1Team && select.step === "p2";
+    const unavailable =
+      select.mode === "versus" && select.step === "p2" && i === select.p1Team;
+    const teamColor = TEAMS[i].primary;
+
+    if (isCursor) {
+      cell.bg.setFillStyle(COLORS.accent, 1);
+      cell.bg.setStrokeStyle(2, COLORS.text, 1);
+      cell.code.setColor("#102117");
+      cell.name.setColor("#173021");
+      cell.flag.setAlpha(1);
+    } else if (lockedByP1) {
+      cell.bg.setFillStyle(teamColor, 0.36);
+      cell.bg.setStrokeStyle(2, COLORS.text, 0.75);
+      cell.code.setColor("#f3ffe9");
+      cell.name.setColor("#f3ffe9");
+      cell.flag.setAlpha(1);
+    } else {
+      cell.bg.setFillStyle(COLORS.panel2, unavailable ? 0.35 : 0.96);
+      cell.bg.setStrokeStyle(2, COLORS.frame, 0.9);
+      cell.code.setColor(unavailable ? "#6d7f6c" : "#f3ffe9");
+      cell.name.setColor(unavailable ? "#6d7f6c" : "#8fb18e");
+      cell.flag.setAlpha(unavailable ? 0.35 : 1);
+    }
+  }
+}
+
+function handleTeamSelectInput(scene, time) {
+  const select = scene.state.select;
+  const activePlayer = select.step === "p1" ? "P1" : "P2";
+  const axis = getPlayerAxis(scene.controls, activePlayer);
+
+  if (
+    time >= select.cooldown &&
+    (axis.x !== 0 || axis.y !== 0) &&
+    (axis.x !== select.lastAxisX || axis.y !== select.lastAxisY)
+  ) {
+    const colCount = 4;
+    const rowCount = 2;
+    let row = Math.floor(select.cursor / colCount);
+    let col = select.cursor % colCount;
+
+    if (axis.x !== 0) {
+      col = Phaser.Math.Wrap(col + axis.x, 0, colCount);
+    }
+    if (axis.y !== 0) {
+      row = Phaser.Math.Wrap(row + axis.y, 0, rowCount);
+    }
+
+    select.cursor = row * colCount + col;
+    select.cooldown = time + 150;
+    select.lastAxisX = axis.x;
+    select.lastAxisY = axis.y;
+    select.message = "";
+    refreshTeamSelectScreen(scene);
+    playSound(scene, "click");
+  }
+
+  if (axis.x === 0 && axis.y === 0) {
+    select.lastAxisX = 0;
+    select.lastAxisY = 0;
+  }
+
+  if (consumeAnyPressedControl(scene, BACK_CODES)) {
+    playSound(scene, "click");
+    showMenu(scene);
+    return;
+  }
+
+  if (!consumeAnyPressedControl(scene, getConfirmCodes(activePlayer))) {
+    return;
+  }
+
+  playSound(scene, "select");
+
+  if (select.step === "p1") {
+    select.p1Team = select.cursor;
+    if (select.mode === "tournament") {
+      startTournament(scene);
+      return;
+    }
+
+    select.step = "p2";
+    select.cursor = (select.p1Team + 1) % TEAMS.length;
+    select.message = "PLAYER 1 LOCKED";
+    refreshTeamSelectScreen(scene);
+    return;
+  }
+
+  if (select.mode === "versus" && select.cursor === select.p1Team) {
+    select.message = "Elige un equipo distinto al de P1";
+    refreshTeamSelectScreen(scene);
+    playSound(scene, "miss");
+    return;
+  }
+
+  select.p2Team = select.cursor;
+  startVersusMatch(scene);
+}
+
+function createBracketScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(22);
+  scene.bracketScreen = {
+    container: c,
+    title: scene.add
+      .text(GAME_WIDTH / 2, 94, "TOURNAMENT BRACKET", {
+        fontFamily: "monospace",
+        fontSize: "22px",
+        color: "#e8ff6a",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5),
+    subtitle: scene.add
+      .text(GAME_WIDTH / 2, 126, "", {
+        fontFamily: "monospace",
+        fontSize: "13px",
+        color: "#8fb18e",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    list: scene.add
+      .text(164, 160, "", {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#f3ffe9",
+        align: "left",
+        lineSpacing: 6,
+      })
+      .setOrigin(0, 0),
+    footer: scene.add
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT - 24,
+        "START/B1/B2 TO CONTINUE  BACK=B6",
+        {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#8fb18e",
+        },
+      )
+      .setOrigin(0.5),
+    flagSprites: [],
+  };
+
+  c.add(
+    scene.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 660, 470, COLORS.panel, 0.94)
+      .setStrokeStyle(2, COLORS.frame, 0.9),
+  );
+  c.add(scene.bracketScreen.title);
+  c.add(scene.bracketScreen.subtitle);
+  c.add(scene.bracketScreen.list);
+  c.add(scene.bracketScreen.footer);
+  c.setVisible(false);
+}
+
+function startTournament(scene) {
+  const playerTeam = scene.state.select.p1Team;
+  scene.state.tournament = createTournament(playerTeam);
+  showBracket(scene, "PRESS START TO PLAY NEXT MATCH");
+}
+
+function showBracket(scene, subtitle) {
+  hideAllScreens(scene);
+  scene.bracketScreen.container.setVisible(true);
+  scene.state.phase = "bracket";
+  renderBracket(scene, subtitle);
+  clearPressed(scene);
+}
+
+function renderBracket(scene, subtitle) {
+  const tournament = scene.state.tournament;
+  if (!tournament) {
+    scene.bracketScreen.list.setText("No tournament data.");
+    return;
+  }
+
+  scene.bracketScreen.subtitle.setText(subtitle || "");
+
+  for (const sprite of scene.bracketScreen.flagSprites) {
+    sprite.destroy();
+  }
+  scene.bracketScreen.flagSprites = [];
+
+  const lines = [];
+  const flagRows = [];
+
+  for (let r = 0; r < tournament.rounds.length; r += 1) {
+    const round = tournament.rounds[r];
+    lines.push(round.name);
+
+    for (let i = 0; i < round.matches.length; i += 1) {
+      const match = round.matches[i];
+      const left = teamCode(match.a);
+      const right = teamCode(match.b);
+      const winner = match.winner === null ? "--" : teamCode(match.winner);
+      const marker = match.isPlayer ? ">" : " ";
+
+      const lineIndex = lines.length;
+      lines.push(`${marker} ${left} vs ${right} -> ${winner}`);
+      flagRows.push({
+        lineIndex,
+        leftTeam: match.a,
+        rightTeam: match.b,
+        winnerTeam: match.winner,
+      });
+    }
+
+    if (r < tournament.rounds.length - 1) {
+      lines.push("");
+    }
+  }
+
+  scene.bracketScreen.list.setText(lines.join("\n"));
+
+  const listX = scene.bracketScreen.list.x;
+  const listY = scene.bracketScreen.list.y;
+  const rowHeight = 20;
+
+  for (const row of flagRows) {
+    const y = listY + row.lineIndex * rowHeight + 8;
+
+    if (typeof row.leftTeam === "number") {
+      const leftFlag = createFlagImage(
+        scene,
+        row.leftTeam,
+        listX + 18,
+        y,
+        16,
+        10,
+      );
+      scene.bracketScreen.container.add(leftFlag);
+      scene.bracketScreen.flagSprites.push(leftFlag);
+    }
+
+    if (typeof row.rightTeam === "number") {
+      const rightFlag = createFlagImage(
+        scene,
+        row.rightTeam,
+        listX + 104,
+        y,
+        16,
+        10,
+      );
+      scene.bracketScreen.container.add(rightFlag);
+      scene.bracketScreen.flagSprites.push(rightFlag);
+    }
+
+    if (typeof row.winnerTeam === "number") {
+      const winnerFlag = createFlagImage(
+        scene,
+        row.winnerTeam,
+        listX + 214,
+        y,
+        14,
+        9,
+      );
+      winnerFlag.setAlpha(0.9);
+      scene.bracketScreen.container.add(winnerFlag);
+      scene.bracketScreen.flagSprites.push(winnerFlag);
+    }
+  }
+}
+
+function handleBracketInput(scene) {
+  if (consumeAnyPressedControl(scene, BACK_CODES)) {
+    showMenu(scene);
+    return;
+  }
+
+  if (
+    !consumeAnyPressedControl(scene, [
+      "START1",
+      "START2",
+      "P1_1",
+      "P2_1",
+      "P1_2",
+      "P2_2",
+    ])
+  ) {
+    return;
+  }
+
+  playSound(scene, "select");
+  startNextTournamentMatch(scene);
+}
+
+function startNextTournamentMatch(scene) {
+  const tournament = scene.state.tournament;
+  if (!tournament) {
+    showMenu(scene);
+    return;
+  }
+
+  const next = findNextPlayerMatch(tournament);
+  if (!next) {
+    if (tournament.champion === tournament.playerTeam) {
+      showFinalScene(scene, {
+        title: "WORLD CHAMPION",
+        subtitle: `${teamName(tournament.playerTeam)} levanta la copa`,
+        lines: [
+          "Recorrido completo del torneo",
+          "La presion no te pudo frenar",
+        ],
+        teamA: tournament.playerTeam,
+        options: ["NEW TOURNAMENT", "LEADERBOARD", "MENU"],
+        context: "tournamentChampion",
+      });
+      persistMatchRecord(scene, {
+        mode: "TOUR",
+        winner: "CHAMPION",
+        team: teamCode(tournament.playerTeam),
+        score: 120,
+        detail: "Champion run",
+      });
+      return;
+    }
+
+    showFinalScene(scene, {
+      title: "TOURNAMENT CLOSED",
+      subtitle: "No pending player matches",
+      lines: [teamName(tournament.playerTeam)],
+      teamA: tournament.playerTeam,
+      options: ["MENU"],
+      context: "tournamentDone",
+    });
+    return;
+  }
+
+  tournament.currentRound = next.roundIndex;
+  tournament.currentMatch = next.matchIndex;
+  const slot = tournament.rounds[next.roundIndex].matches[next.matchIndex];
+
+  const match = createShootoutMatch({
+    mode: "tournament",
+    roundName: tournament.rounds[next.roundIndex].name,
+    teamA: slot.a,
+    teamB: slot.b,
+    controlA: "human1",
+    controlB: "cpu",
+  });
+
+  startMatch(scene, match);
+}
+
+function createMatchScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(23);
+
+  const panel = scene.add
+    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 760, 560, 0x07120b, 0.8)
+    .setStrokeStyle(2, COLORS.frame, 0.45);
+  const goalBack = scene.add
+    .rectangle(GAME_WIDTH / 2, 186, 332, 110, 0x163f25, 0.72)
+    .setStrokeStyle(2, COLORS.line, 0.6);
+  const goalFrame = scene.add.rectangle(
+    GAME_WIDTH / 2,
+    132,
+    332,
+    8,
+    0xf2fff2,
+    0.95,
+  );
+  const goalLeft = scene.add.rectangle(
+    GAME_WIDTH / 2 - 166,
+    184,
+    8,
+    104,
+    0xf2fff2,
+    1,
+  );
+  const goalRight = scene.add.rectangle(
+    GAME_WIDTH / 2 + 166,
+    184,
+    8,
+    104,
+    0xf2fff2,
+    1,
+  );
+  const povLeft = scene.add
+    .line(GAME_WIDTH / 2, GAME_HEIGHT - 18, 0, 0, -168, -352, COLORS.line, 0.25)
+    .setLineWidth(2, 2);
+  const povRight = scene.add
+    .line(GAME_WIDTH / 2, GAME_HEIGHT - 18, 0, 0, 168, -352, COLORS.line, 0.25)
+    .setLineWidth(2, 2);
+  const shooterShadow = scene.add.ellipse(
+    GAME_WIDTH / 2,
+    GAME_HEIGHT - 30,
+    210,
+    26,
+    COLORS.shadow,
+    0.55,
+  );
+  const reticle = scene.add.container(GAME_WIDTH / 2, 168);
+  const reticleRing = scene.add.circle(0, 0, 16, COLORS.accent, 0);
+  reticleRing.setStrokeStyle(2, COLORS.accent, 1);
+  const reticleH = scene.add.rectangle(0, 0, 28, 2, COLORS.accent, 1);
+  const reticleV = scene.add.rectangle(0, 0, 2, 28, COLORS.accent, 1);
+  reticle.add([reticleRing, reticleH, reticleV]);
+
+  const keeper = scene.add
+    .rectangle(GAME_WIDTH / 2, 207, 36, 18, 0x7ec4ff, 1)
+    .setStrokeStyle(2, 0xffffff, 0.9);
+  const ball = scene.add
+    .circle(GAME_WIDTH / 2, 516, 8, 0xffffff, 1)
+    .setStrokeStyle(1, 0x102117, 0.7);
+
+  scene.matchScreen = {
+    container: c,
+    panel,
+    goalBack,
+    goalFrame,
+    goalLeft,
+    goalRight,
+    povLeft,
+    povRight,
+    shooterShadow,
+    reticle,
+    keeper,
+    ball,
+    title: scene.add
+      .text(GAME_WIDTH / 2, 86, "MATCH", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        color: "#e8ff6a",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5),
+    score: scene.add
+      .text(GAME_WIDTH / 2, 114, "00 : 00", {
+        fontFamily: "monospace",
+        fontSize: "38px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5),
+    leftFlag: createFlagImage(scene, 0, 94, 116, 36, 22),
+    leftTeam: scene.add
+      .text(136, 116, "AAA", {
+        fontFamily: "monospace",
+        fontSize: "24px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(0, 0.5),
+    rightFlag: createFlagImage(scene, 1, GAME_WIDTH - 94, 116, 36, 22),
+    rightTeam: scene.add
+      .text(GAME_WIDTH - 136, 116, "BBB", {
+        fontFamily: "monospace",
+        fontSize: "24px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(1, 0.5),
+    shotsA: scene.add
+      .text(120, 154, "○○○○○", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        color: "#b2c957",
+      })
+      .setOrigin(0, 0.5),
+    shotsB: scene.add
+      .text(GAME_WIDTH - 120, 154, "○○○○○", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        color: "#b2c957",
+      })
+      .setOrigin(1, 0.5),
+    turn: scene.add
+      .text(GAME_WIDTH / 2, 154, "KICK 1 / 5", {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#8fb18e",
+      })
+      .setOrigin(0.5),
+    prompt: scene.add
+      .text(GAME_WIDTH / 2, 520, "SET YOUR CHOICE", {
+        fontFamily: "monospace",
+        fontSize: "15px",
+        color: "#f3ffe9",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    phaseHint: scene.add
+      .text(GAME_WIDTH / 2, 544, "", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#b2c957",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    event: scene.add
+      .text(GAME_WIDTH / 2, 568, "", {
+        fontFamily: "monospace",
+        fontSize: "13px",
+        color: "#ffb06a",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    secretHint: scene.add
+      .text(GAME_WIDTH / 2, 494, "", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#8fb18e",
+        align: "center",
+      })
+      .setOrigin(0.5),
+  };
+
+  for (let i = -2; i <= 2; i += 1) {
+    const netV = scene.add.rectangle(
+      GAME_WIDTH / 2 + i * 66,
+      186,
+      2,
+      110,
+      COLORS.line,
+      0.16,
+    );
+    c.add(netV);
+  }
+  for (let i = 0; i < 4; i += 1) {
+    const netH = scene.add.rectangle(
+      GAME_WIDTH / 2,
+      146 + i * 26,
+      332,
+      2,
+      COLORS.line,
+      0.14,
+    );
+    c.add(netH);
+  }
+
+  c.add(panel);
+  c.add(goalBack);
+  c.add(goalFrame);
+  c.add(goalLeft);
+  c.add(goalRight);
+  c.add(povLeft);
+  c.add(povRight);
+  c.add(shooterShadow);
+  c.add(reticle);
+  c.add(keeper);
+  c.add(ball);
+  c.add(scene.matchScreen.title);
+  c.add(scene.matchScreen.score);
+  c.add(scene.matchScreen.leftFlag);
+  c.add(scene.matchScreen.leftTeam);
+  c.add(scene.matchScreen.rightFlag);
+  c.add(scene.matchScreen.rightTeam);
+  c.add(scene.matchScreen.shotsA);
+  c.add(scene.matchScreen.shotsB);
+  c.add(scene.matchScreen.turn);
+  c.add(scene.matchScreen.secretHint);
+  c.add(scene.matchScreen.prompt);
+  c.add(scene.matchScreen.phaseHint);
+  c.add(scene.matchScreen.event);
+
+  c.setVisible(false);
+}
+
+function startVersusMatch(scene) {
+  const select = scene.state.select;
+  const match = createShootoutMatch({
+    mode: "versus",
+    roundName: "VERSUS",
+    teamA: select.p1Team,
+    teamB: select.p2Team,
+    controlA: "human1",
+    controlB: "human2",
+  });
+  startMatch(scene, match);
+}
+
+function createShootoutMatch(options) {
+  return {
+    mode: options.mode,
+    roundName: options.roundName,
+    teamA: options.teamA,
+    teamB: options.teamB,
+    controlA: options.controlA,
+    controlB: options.controlB,
+    scoreA: 0,
+    scoreB: 0,
+    takenA: 0,
+    takenB: 0,
+    marksA: [],
+    marksB: [],
+    historyA: [],
+    historyB: [],
+    turn: 0,
+    pending: null,
+    nextAttemptAt: 0,
+    resolving: false,
+    winnerSide: null,
+  };
+}
+
+function startMatch(scene, match) {
+  scene.state.match = match;
+  hideAllScreens(scene);
+  scene.matchScreen.container.setVisible(true);
+  scene.state.phase = "matchInput";
+
+  setupNextAttempt(scene, scene.time.now);
+  updateMatchHud(scene);
+  clearPressed(scene);
+}
+
+function setupNextAttempt(scene, time) {
+  const match = scene.state.match;
+  if (!match) {
+    return;
+  }
+
+  const shooterSide = match.turn % 2 === 0 ? "A" : "B";
+  const keeperSide = shooterSide === "A" ? "B" : "A";
+
+  match.pending = {
+    shooterSide,
+    keeperSide,
+    stage: "shooter",
+    activeX: 0,
+    activeY: 1,
+    shooter: { x: 0, y: 1, style: 0, locked: false },
+    keeper: { x: 0, y: 1, style: 1, locked: false },
+    revealAt: 0,
+    stageStartedAt: time,
+    lockDeadline: time + 6200,
+    cpuReadyAt: time + Phaser.Math.Between(300, 680),
+  };
+
+  match.resolving = false;
+
+  scene.matchScreen.ball
+    .setPosition(GAME_WIDTH / 2, 516)
+    .setFillStyle(0xffffff)
+    .setAlpha(1);
+  scene.matchScreen.keeper
+    .setPosition(GAME_WIDTH / 2, 207)
+    .setFillStyle(TEAMS[getTeamIndexBySide(match, keeperSide)].primary);
+  scene.matchScreen.reticle.setVisible(true);
+  scene.matchScreen.event.setText("");
+  scene.matchScreen.phaseHint.setText("");
+  scene.matchScreen.secretHint.setText("");
+
+  setAimCursor(scene, match, 0, 1);
+
+  updateMatchHud(scene);
+}
+
+function updateMatchHud(scene) {
+  const match = scene.state.match;
+  if (!match || !match.pending) {
+    return;
+  }
+
+  const shooterSide = match.pending.shooterSide;
+  const shooterTeam = getTeamIndexBySide(match, shooterSide);
+  const shooterName = teamCode(shooterTeam);
+
+  scene.matchScreen.title.setText(`${match.roundName} - SHOOTER POV`);
+  scene.matchScreen.leftFlag.setTexture(flagTextureKey(match.teamA));
+  scene.matchScreen.leftTeam.setText(teamCode(match.teamA));
+  scene.matchScreen.leftTeam.setColor(colorHex(TEAMS[match.teamA].primary));
+  scene.matchScreen.rightFlag.setTexture(flagTextureKey(match.teamB));
+  scene.matchScreen.rightTeam.setText(teamCode(match.teamB));
+  scene.matchScreen.rightTeam.setColor(colorHex(TEAMS[match.teamB].primary));
+  scene.matchScreen.score.setText(
+    `${String(match.scoreA).padStart(2, "0")} : ${String(match.scoreB).padStart(2, "0")}`,
+  );
+  scene.matchScreen.shotsA.setText(markersText(match.marksA));
+  scene.matchScreen.shotsB.setText(markersText(match.marksB));
+
+  const kickCount = Math.floor(match.turn / 2) + 1;
+  const sudden =
+    match.takenA >= PENALTIES_PER_SIDE && match.takenB >= PENALTIES_PER_SIDE;
+  scene.matchScreen.turn.setText(
+    sudden
+      ? `SUDDEN DEATH ${Math.max(1, kickCount - PENALTIES_PER_SIDE)}`
+      : `${shooterName} KICK ${Math.min(kickCount, PENALTIES_PER_SIDE)} / ${PENALTIES_PER_SIDE}`,
+  );
+
+  if (scene.state.phase === "matchInput") {
+    const isShooterStage = match.pending.stage === "shooter";
+    const activeSide = isShooterStage
+      ? match.pending.shooterSide
+      : match.pending.keeperSide;
+    const activeTag = getSidePlayerTag(match, activeSide);
+    const activeControl = activeSide === "A" ? match.controlA : match.controlB;
+
+    scene.matchScreen.prompt.setText(
+      `${activeTag} ${isShooterStage ? "DELANTERO" : "PORTERO"}: APUNTA Y BLOQUEA`,
+    );
+
+    const styleValue = isShooterStage
+      ? match.pending.shooter.style === 0
+        ? "POTENTE"
+        : "COLOCADO"
+      : match.pending.keeper.style === 0
+        ? "AGRESIVA"
+        : "SEGURA";
+
+    scene.matchScreen.phaseHint.setText(
+      activeControl === "cpu"
+        ? "CPU ELIGIENDO..."
+        : `ESTILO ${styleValue}  BLOQUEAR B3/B4/START`,
+    );
+
+    scene.matchScreen.secretHint.setText(
+      isShooterStage
+        ? "PORTERO: APARTA LA MIRADA"
+        : "DELANTERO: APARTA LA MIRADA",
+    );
+  } else if (scene.state.phase === "matchReveal") {
+    scene.matchScreen.prompt.setText("REVEALING...");
+    scene.matchScreen.phaseHint.setText("");
+    scene.matchScreen.secretHint.setText("");
+  }
+}
+
+function markersText(list) {
+  const base = [];
+  for (let i = 0; i < PENALTIES_PER_SIDE; i += 1) {
+    if (i < list.length) {
+      base.push(list[i] === "goal" ? "●" : "x");
+    } else {
+      base.push("○");
+    }
+  }
+
+  if (list.length > PENALTIES_PER_SIDE) {
+    base.push(`+${list.length - PENALTIES_PER_SIDE}`);
+  }
+
+  return base.join(" ");
+}
+
+function handleMatchInput(scene, time) {
+  const match = scene.state.match;
+  if (!match || !match.pending) {
+    return;
+  }
+
+  if (consumeAnyPressedControl(scene, BACK_CODES)) {
+    playSound(scene, "click");
+    showMenu(scene);
+    return;
+  }
+
+  const isShooterStage = match.pending.stage === "shooter";
+  const activeSide = isShooterStage
+    ? match.pending.shooterSide
+    : match.pending.keeperSide;
+
+  handleSideChoice(scene, match, activeSide, isShooterStage, time);
+
+  const pending = match.pending;
+  if (time >= pending.lockDeadline) {
+    lockCurrentStage(scene, match, time);
+    playSound(scene, "click");
+  }
+
+  updateMatchHud(scene);
+}
+
+function lockCurrentStage(scene, match, time) {
+  const pending = match.pending;
+  if (!pending) {
+    return;
+  }
+
+  if (pending.stage === "shooter") {
+    if (!pending.shooter.locked) {
+      pending.shooter.x = pending.activeX;
+      pending.shooter.y = pending.activeY;
+      pending.shooter.locked = true;
+    }
+
+    pending.stage = "keeper";
+    pending.stageStartedAt = time;
+    pending.lockDeadline = time + 6200;
+    pending.cpuReadyAt = time + Phaser.Math.Between(320, 760);
+
+    setAimCursor(scene, match, 0, 1);
+    clearPressed(scene);
+    return;
+  }
+
+  if (!pending.keeper.locked) {
+    pending.keeper.x = pending.activeX;
+    pending.keeper.y = pending.activeY;
+    pending.keeper.locked = true;
+  }
+
+  pending.revealAt = time + 360;
+  scene.state.phase = "matchReveal";
+  scene.matchScreen.reticle.setVisible(false);
+  scene.matchScreen.prompt.setText("REVEALING...");
+  scene.matchScreen.phaseHint.setText("");
+  scene.matchScreen.secretHint.setText("");
+}
+
+function handleSideChoice(scene, match, side, isShooterStage, time) {
+  const pending = match.pending;
+  const choice = isShooterStage ? pending.shooter : pending.keeper;
+  const control = side === "A" ? match.controlA : match.controlB;
+
+  if (control === "cpu") {
+    if (time < pending.cpuReadyAt) {
+      return;
+    }
+    applyCpuChoice(match, side, isShooterStage);
+    choice.locked = true;
+    lockCurrentStage(scene, match, time);
+    return;
+  }
+
+  const player = control === "human1" ? "P1" : "P2";
+  let moved = false;
+
+  if (consumeAnyPressedControl(scene, [`${player}_L`])) {
+    pending.activeX -= 1;
+    moved = true;
+  }
+  if (consumeAnyPressedControl(scene, [`${player}_R`])) {
+    pending.activeX += 1;
+    moved = true;
+  }
+  if (consumeAnyPressedControl(scene, [`${player}_U`])) {
+    pending.activeY -= 1;
+    moved = true;
+  }
+  if (consumeAnyPressedControl(scene, [`${player}_D`])) {
+    pending.activeY += 1;
+    moved = true;
+  }
+
+  if (moved) {
+    setAimCursor(scene, match, pending.activeX, pending.activeY);
+    playSound(scene, "click");
+  }
+
+  if (consumeAnyPressedControl(scene, [`${player}_1`])) {
+    choice.style = 0;
+  }
+  if (consumeAnyPressedControl(scene, [`${player}_2`])) {
+    choice.style = 1;
+  }
+
+  const startCode = player === "P1" ? "START1" : "START2";
+  if (
+    consumeAnyPressedControl(scene, [`${player}_3`, `${player}_4`, startCode])
+  ) {
+    choice.x = pending.activeX;
+    choice.y = pending.activeY;
+    choice.locked = true;
+    playSound(scene, "select");
+    lockCurrentStage(scene, match, time);
+  }
+}
+
+function applyCpuChoice(match, side, isShooter) {
+  const pending = match.pending;
+  const choice = isShooter ? pending.shooter : pending.keeper;
+
+  const teamIdx = getTeamIndexBySide(match, side);
+  const enemySide = side === "A" ? "B" : "A";
+  const enemyTeamIdx = getTeamIndexBySide(match, enemySide);
+  const team = TEAMS[teamIdx];
+  const enemyHist = enemySide === "A" ? match.historyA : match.historyB;
+
+  if (isShooter) {
+    let x = Phaser.Math.Between(-2, 2);
+    let y = Phaser.Math.Between(0, 2);
+    if (isPressureKick(match) && Math.random() < 0.45) {
+      y = 1;
+    }
+    if (team.attack > 0.07 && Math.random() < 0.35) {
+      x = Math.random() < 0.5 ? -2 : 2;
+      y = Math.random() < 0.5 ? 0 : 1;
+    }
+    choice.x = x;
+    choice.y = y;
+    choice.style = Math.random() < 0.56 ? 0 : 1;
+  } else {
+    let guessX = Phaser.Math.Between(-2, 2);
+    let guessY = Phaser.Math.Between(0, 2);
+    if (enemyHist.length >= 2) {
+      const last = enemyHist[enemyHist.length - 1];
+      const prev = enemyHist[enemyHist.length - 2];
+      if (last && prev && last.x === prev.x && Math.random() < 0.65) {
+        guessX = last.x;
+      }
+      if (last && prev && last.y === prev.y && Math.random() < 0.45) {
+        guessY = last.y;
+      }
+    }
+    if (isPressureKick(match) && Math.random() < 0.3) {
+      guessX = 0;
+      guessY = 1;
+    }
+    if (TEAMS[enemyTeamIdx].attack > 0.07 && Math.random() < 0.22) {
+      guessX = Math.random() < 0.5 ? -2 : 2;
+    }
+    choice.x = guessX;
+    choice.y = guessY;
+    choice.style = Math.random() < (team.keep > 0.05 ? 0.62 : 0.47) ? 1 : 0;
+  }
+}
+
+function setAimCursor(scene, match, x, y) {
+  if (!match || !match.pending) {
+    return;
+  }
+
+  match.pending.activeX = Phaser.Math.Clamp(x, -2, 2);
+  match.pending.activeY = Phaser.Math.Clamp(y, 0, 2);
+  syncReticle(scene, match.pending.activeX, match.pending.activeY);
+}
+
+function syncReticle(scene, x, y) {
+  scene.matchScreen.reticle.setPosition(aimToWorldX(x), aimToWorldY(y));
+}
+
+function aimToWorldX(x) {
+  return GAME_WIDTH / 2 + x * 56;
+}
+
+function aimToWorldY(y) {
+  return 146 + y * 28;
+}
+
+function getSidePlayerTag(match, side) {
+  const control = side === "A" ? match.controlA : match.controlB;
+  return control === "human1" ? "P1" : control === "human2" ? "P2" : "CPU";
+}
+
+function handleMatchReveal(scene, time) {
+  const match = scene.state.match;
+  if (!match || !match.pending || match.resolving) {
+    return;
+  }
+
+  if (time < match.pending.revealAt) {
+    return;
+  }
+
+  match.resolving = true;
+  const outcome = resolvePenalty(match);
+  animateOutcome(scene, match, outcome, () => {
+    applyOutcome(scene, match, outcome);
+    match.resolving = false;
+  });
+}
+
+function resolvePenalty(match) {
+  const pending = match.pending;
+  const shooterSide = pending.shooterSide;
+  const keeperSide = pending.keeperSide;
+  const shooterTeam = TEAMS[getTeamIndexBySide(match, shooterSide)];
+  const keeperTeam = TEAMS[getTeamIndexBySide(match, keeperSide)];
+  const shot = pending.shooter;
+  const keep = pending.keeper;
+
+  let goalChance = 0.73;
+  goalChance += shooterTeam.attack * 0.55;
+  goalChance -= keeperTeam.keep * 0.55;
+
+  let missChance = 0.05;
+  if (shot.style === 0) {
+    goalChance += 0.04;
+    missChance += 0.05;
+  } else {
+    goalChance += 0.02;
+    missChance -= 0.01;
+  }
+
+  const delta = Math.abs(shot.x - keep.x) + Math.abs(shot.y - keep.y);
+  let savePressure = 0;
+  if (delta === 0) {
+    savePressure += keep.style === 0 ? 0.38 : 0.34;
+  } else if (delta === 1) {
+    savePressure += keep.style === 0 ? 0.2 : 0.15;
+  } else if (delta === 2 && keep.style === 0) {
+    savePressure += 0.08;
+  }
+  goalChance -= savePressure;
+
+  if (shot.style === 0 && shot.y === 0) {
+    missChance += 0.03;
+  }
+  if (shot.style === 0 && Math.abs(shot.x) === 2) {
+    missChance += 0.03;
+  }
+  if (shot.style === 1 && shot.y === 1) {
+    goalChance += 0.04;
+  }
+  if (keep.style === 1 && shot.y === 2) {
+    goalChance -= 0.04;
+  }
+  if (keep.style === 0 && shot.y === 0) {
+    goalChance -= 0.03;
+  }
+
+  let postChance = 0.02 + (shot.style === 1 ? 0.015 : 0);
+  let event = "";
+
+  if (isPressureKick(match) && Math.random() < 0.16) {
+    const roll = Math.random();
+    if (roll < 0.2) {
+      event = "RESBALON";
+      goalChance -= 0.14;
+      missChance += 0.07;
+    } else if (roll < 0.42) {
+      event = "GUANTE HEROICO";
+      goalChance -= 0.12;
+    } else if (roll < 0.64) {
+      event = "BALON CON EFECTO";
+      goalChance += 0.09;
+    } else if (roll < 0.84) {
+      event = "REBOTE EN EL POSTE";
+      postChance += 0.1;
+    } else {
+      event = "PENAL LEGENDARIO";
+      goalChance += shooterTeam.clutch * 0.85 + 0.08;
+    }
+  }
+
+  goalChance = Phaser.Math.Clamp(goalChance, 0.08, 0.94);
+  missChance = Phaser.Math.Clamp(missChance, 0.01, 0.25);
+  postChance = Phaser.Math.Clamp(postChance, 0.01, 0.23);
+
+  const roll = Math.random();
+  let result = "goal";
+
+  if (roll < missChance) {
+    result = "miss";
+  } else if (roll < missChance + postChance) {
+    result =
+      event === "REBOTE EN EL POSTE" && Math.random() < 0.68
+        ? "postIn"
+        : "postOut";
+  } else if (roll > goalChance) {
+    result = "save";
+  }
+
+  const text =
+    result === "goal"
+      ? "GOAL!"
+      : result === "save"
+        ? "SAVED!"
+        : result === "postIn"
+          ? "POST AND IN!"
+          : result === "postOut"
+            ? "POST OUT!"
+            : "MISS!";
+
+  return {
+    shooterSide,
+    keeperSide,
+    shotX: shot.x,
+    shotY: shot.y,
+    keepX: keep.x,
+    keepY: keep.y,
+    shotStyle: shot.style,
+    keepStyle: keep.style,
+    result,
+    goal: result === "goal" || result === "postIn",
+    event,
+    text,
+  };
+}
+
+function animateOutcome(scene, match, outcome, onDone) {
+  const ball = scene.matchScreen.ball;
+  const keeper = scene.matchScreen.keeper;
+
+  const targetX = aimToWorldX(outcome.shotX);
+  const targetY = aimToWorldY(outcome.shotY);
+  const keeperX = aimToWorldX(outcome.keepX);
+  const keeperY = 188 + outcome.keepY * 18;
+
+  const ballY =
+    outcome.result === "save"
+      ? keeperY
+      : outcome.result === "miss"
+        ? targetY - 26
+        : outcome.result === "postOut"
+          ? targetY - 12
+          : targetY;
+
+  scene.tweens.killTweensOf(ball);
+  scene.tweens.killTweensOf(keeper);
+  scene.tweens.killTweensOf(scene.matchScreen.reticle);
+
+  scene.tweens.add({
+    targets: keeper,
+    x: keeperX,
+    y: keeperY,
+    duration: 220,
+    ease: "Cubic.easeOut",
+  });
+
+  scene.tweens.add({
+    targets: ball,
+    x: targetX,
+    y: ballY,
+    duration: 360,
+    ease: "Cubic.easeOut",
+    onComplete: () => {
+      if (outcome.result === "save") {
+        scene.tweens.add({
+          targets: ball,
+          y: ballY + 20,
+          alpha: 0.55,
+          duration: 120,
+        });
+      }
+
+      if (outcome.result === "goal" || outcome.result === "postIn") {
+        scene.cameras.main.shake(120, 0.0035);
+      }
+
+      if (isPressureKick(match)) {
+        scene.cameras.main.zoomTo(1.03, 140);
+        scene.time.delayedCall(160, () => {
+          scene.cameras.main.zoomTo(1, 220);
+        });
+      }
+
+      scene.matchScreen.prompt.setText(outcome.text);
+      scene.matchScreen.phaseHint.setText("");
+      scene.matchScreen.event.setText(outcome.event || "");
+
+      if (outcome.result === "goal" || outcome.result === "postIn") {
+        playSound(scene, "goal");
+      } else if (outcome.result === "save") {
+        playSound(scene, "save");
+      } else {
+        playSound(scene, "miss");
+      }
+
+      scene.time.delayedCall(520, onDone);
+    },
+  });
+
+  playSound(scene, "kick");
+}
+
+function applyOutcome(scene, match, outcome) {
+  if (outcome.shooterSide === "A") {
+    match.takenA += 1;
+    match.historyA.push({ x: outcome.shotX, y: outcome.shotY });
+    if (outcome.goal) {
+      match.scoreA += 1;
+      match.marksA.push("goal");
+    } else {
+      match.marksA.push("miss");
+    }
+  } else {
+    match.takenB += 1;
+    match.historyB.push({ x: outcome.shotX, y: outcome.shotY });
+    if (outcome.goal) {
+      match.scoreB += 1;
+      match.marksB.push("goal");
+    } else {
+      match.marksB.push("miss");
+    }
+  }
+
+  updateMatchHud(scene);
+
+  const end = evaluateShootoutEnd(match);
+  if (end.done) {
+    match.winnerSide = end.winnerSide;
+    finishMatch(scene, match);
+    return;
+  }
+
+  scene.state.phase = "matchResult";
+  match.nextAttemptAt = scene.time.now + 820;
+}
+
+function handleMatchResult(scene, time) {
+  const match = scene.state.match;
+  if (!match || match.winnerSide) {
+    return;
+  }
+
+  if (time < match.nextAttemptAt) {
+    return;
+  }
+
+  match.turn += 1;
+  setupNextAttempt(scene, time);
+  scene.state.phase = "matchInput";
+  updateMatchHud(scene);
+}
+
+function evaluateShootoutEnd(match) {
+  const remainingA = PENALTIES_PER_SIDE - match.takenA;
+  const remainingB = PENALTIES_PER_SIDE - match.takenB;
+
+  if (match.scoreA > match.scoreB + Math.max(0, remainingB)) {
+    return { done: true, winnerSide: "A" };
+  }
+  if (match.scoreB > match.scoreA + Math.max(0, remainingA)) {
+    return { done: true, winnerSide: "B" };
+  }
+
+  const reachedBase =
+    match.takenA >= PENALTIES_PER_SIDE && match.takenB >= PENALTIES_PER_SIDE;
+  if (
+    reachedBase &&
+    match.takenA === match.takenB &&
+    match.scoreA !== match.scoreB
+  ) {
+    return { done: true, winnerSide: match.scoreA > match.scoreB ? "A" : "B" };
+  }
+
+  return { done: false, winnerSide: null };
+}
+
+function finishMatch(scene, match) {
+  const winnerSide = match.winnerSide;
+  const winnerTeam = getTeamIndexBySide(match, winnerSide);
+  const loserTeam = getTeamIndexBySide(match, winnerSide === "A" ? "B" : "A");
+  const scoreLine = `${match.scoreA}-${match.scoreB}`;
+
+  if (match.mode === "versus") {
+    const winnerLabel = winnerSide === "A" ? "PLAYER 1" : "PLAYER 2";
+    persistMatchRecord(scene, {
+      mode: "VERS",
+      winner: winnerLabel,
+      team: teamCode(winnerTeam),
+      score: scoreFromMatch(match) + 30,
+      detail: `${teamCode(match.teamA)} ${scoreLine} ${teamCode(match.teamB)}`,
+    });
+
+    showFinalScene(scene, {
+      title: `${winnerLabel} WINS`,
+      subtitle: `${teamName(winnerTeam)} ${scoreLine}`,
+      lines: [`${teamName(loserTeam)} no pudo sostener la tanda`],
+      teamA: match.teamA,
+      teamB: match.teamB,
+      options: ["REMATCH", "LEADERBOARD", "MENU"],
+      context: "versusEnd",
+    });
+    return;
+  }
+
+  const tournament = scene.state.tournament;
+  if (!tournament) {
+    showMenu(scene);
+    return;
+  }
+
+  const slot =
+    tournament.rounds[tournament.currentRound].matches[tournament.currentMatch];
+  slot.winner = winnerTeam;
+  propagateTournament(tournament);
+
+  if (winnerTeam !== tournament.playerTeam) {
+    persistMatchRecord(scene, {
+      mode: "TOUR",
+      winner: "ELIM",
+      team: teamCode(winnerTeam),
+      score: scoreFromMatch(match),
+      detail: `${teamCode(match.teamA)} ${scoreLine} ${teamCode(match.teamB)}`,
+    });
+
+    showFinalScene(scene, {
+      title: "ELIMINATED",
+      subtitle: `${teamName(winnerTeam)} te deja afuera`,
+      lines: [`Resultado ${scoreLine}`, "Intenta otro camino a la copa"],
+      teamA: winnerTeam,
+      teamB: loserTeam,
+      options: ["NEW TOURNAMENT", "LEADERBOARD", "MENU"],
+      context: "tournamentLose",
+    });
+    return;
+  }
+
+  const next = findNextPlayerMatch(tournament);
+  if (!next) {
+    tournament.champion = winnerTeam;
+    persistMatchRecord(scene, {
+      mode: "TOUR",
+      winner: "CHAMP",
+      team: teamCode(winnerTeam),
+      score: 100 + scoreFromMatch(match),
+      detail: "Champion run",
+    });
+
+    showFinalScene(scene, {
+      title: "WORLD CHAMPION",
+      subtitle: `${teamName(winnerTeam)} campeon del 26`,
+      lines: ["Ruta completada: Cuartos, Semis y Final"],
+      teamA: winnerTeam,
+      teamB: loserTeam,
+      options: ["NEW TOURNAMENT", "LEADERBOARD", "MENU"],
+      context: "tournamentChampion",
+    });
+    playSound(scene, "win");
+    return;
+  }
+
+  showBracket(
+    scene,
+    `${tournament.rounds[next.roundIndex].name} READY - PRESS START`,
+  );
+}
+
+function scoreFromMatch(match) {
+  const diff = Math.abs(match.scoreA - match.scoreB);
+  const total = match.scoreA + match.scoreB;
+  return total * 10 + diff * 8;
+}
+
+function createFinalScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(24);
+
+  scene.finalScreen = {
+    container: c,
+    title: scene.add
+      .text(GAME_WIDTH / 2, 150, "", {
+        fontFamily: "monospace",
+        fontSize: "40px",
+        color: "#e8ff6a",
+        fontStyle: "bold",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    leftFlag: createFlagImage(scene, 0, GAME_WIDTH / 2 - 62, 206, 42, 26),
+    rightFlag: createFlagImage(scene, 1, GAME_WIDTH / 2 + 62, 206, 42, 26),
+    subtitle: scene.add
+      .text(GAME_WIDTH / 2, 206, "", {
+        fontFamily: "monospace",
+        fontSize: "18px",
+        color: "#f3ffe9",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    body: scene.add
+      .text(GAME_WIDTH / 2, 252, "", {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#8fb18e",
+        align: "center",
+        lineSpacing: 6,
+      })
+      .setOrigin(0.5, 0),
+    saveStatus: scene.add
+      .text(GAME_WIDTH / 2, 346, "", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#b2c957",
+        align: "center",
+      })
+      .setOrigin(0.5),
+    buttons: [],
+  };
+
+  c.add(
+    scene.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 620, 420, COLORS.panel, 0.95)
+      .setStrokeStyle(2, COLORS.frame, 0.95),
+  );
+  c.add(scene.finalScreen.title);
+  c.add(scene.finalScreen.leftFlag);
+  c.add(scene.finalScreen.rightFlag);
+  c.add(scene.finalScreen.subtitle);
+  c.add(scene.finalScreen.body);
+  c.add(scene.finalScreen.saveStatus);
+
+  for (let i = 0; i < 3; i += 1) {
+    const y = 412 + i * 50;
+    const bg = scene.add
+      .rectangle(GAME_WIDTH / 2, y, 300, 40, COLORS.panel2, 0.95)
+      .setStrokeStyle(2, COLORS.frame, 0.9);
+    const label = scene.add
+      .text(GAME_WIDTH / 2, y, "", {
+        fontFamily: "monospace",
+        fontSize: "20px",
+        color: "#f3ffe9",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    scene.finalScreen.buttons.push({ bg, label });
+    c.add(bg);
+    c.add(label);
+  }
+
+  c.setVisible(false);
+}
+
+function showFinalScene(scene, payload) {
+  hideAllScreens(scene);
+  scene.finalScreen.container.setVisible(true);
+
+  scene.state.phase = "final";
+  scene.state.finalContext = payload.context;
+  scene.state.finalPayload = payload;
+  scene.state.finalOptions = payload.options.slice();
+  scene.state.finalMenu = { cursor: 0, cooldown: 0, lastAxis: 0 };
+
+  scene.finalScreen.title.setText(payload.title || "RESULT");
+  scene.finalScreen.subtitle.setText(payload.subtitle || "");
+  scene.finalScreen.body.setText((payload.lines || []).join("\n"));
+  scene.finalScreen.saveStatus.setText(scene.state.saveStatus || "");
+
+  const hasLeftFlag = typeof payload.teamA === "number";
+  const hasRightFlag = typeof payload.teamB === "number";
+  scene.finalScreen.leftFlag.setVisible(hasLeftFlag);
+  scene.finalScreen.rightFlag.setVisible(hasRightFlag);
+
+  if (hasLeftFlag) {
+    scene.finalScreen.leftFlag.setTexture(flagTextureKey(payload.teamA));
+  }
+  if (hasRightFlag) {
+    scene.finalScreen.rightFlag.setTexture(flagTextureKey(payload.teamB));
+  }
+
+  scene.finalScreen.leftFlag.setX(
+    hasRightFlag ? GAME_WIDTH / 2 - 62 : GAME_WIDTH / 2,
+  );
+  scene.finalScreen.rightFlag.setX(GAME_WIDTH / 2 + 62);
+
+  for (let i = 0; i < scene.finalScreen.buttons.length; i += 1) {
+    const button = scene.finalScreen.buttons[i];
+    if (i < scene.state.finalOptions.length) {
+      button.bg.setVisible(true);
+      button.label.setVisible(true);
+      button.label.setText(scene.state.finalOptions[i]);
+    } else {
+      button.bg.setVisible(false);
+      button.label.setVisible(false);
+    }
+  }
+
+  updateFinalMenuHighlight(scene);
+  clearPressed(scene);
+}
+
+function handleFinalInput(scene, time) {
+  const menu = scene.state.finalMenu;
+  const optionCount = scene.state.finalOptions.length;
+  if (optionCount <= 0) {
+    if (consumeAnyPressedControl(scene, ["START1", "START2", "P1_1", "P2_1"])) {
+      showMenu(scene);
+    }
+    return;
+  }
+
+  const axisY = getVerticalMenuAxis(scene.controls);
+  if (time >= menu.cooldown && axisY !== 0 && axisY !== menu.lastAxis) {
+    menu.cursor = Phaser.Math.Wrap(menu.cursor + axisY, 0, optionCount);
+    menu.cooldown = time + 160;
+    menu.lastAxis = axisY;
+    updateFinalMenuHighlight(scene);
+    playSound(scene, "click");
+  }
+
+  if (axisY === 0) {
+    menu.lastAxis = 0;
+  }
+
+  if (
+    !consumeAnyPressedControl(scene, [
+      "START1",
+      "START2",
+      "P1_1",
+      "P2_1",
+      "P1_2",
+      "P2_2",
+    ])
+  ) {
+    return;
+  }
+
+  playSound(scene, "select");
+  const action = scene.state.finalOptions[menu.cursor];
+  if (action === "MENU") {
+    showMenu(scene);
+    return;
+  }
+  if (action === "LEADERBOARD") {
+    showLeaderboard(scene);
+    return;
+  }
+  if (action === "REMATCH") {
+    startVersusMatch(scene);
+    return;
+  }
+  if (action === "NEW TOURNAMENT") {
+    startTeamSelect(scene, "tournament");
+    return;
+  }
+
+  showMenu(scene);
+}
+
+function updateFinalMenuHighlight(scene) {
+  const cursor = scene.state.finalMenu.cursor;
+  for (let i = 0; i < scene.finalScreen.buttons.length; i += 1) {
+    const button = scene.finalScreen.buttons[i];
+    if (!button.bg.visible) {
+      continue;
+    }
+    const active = i === cursor;
+    button.bg.setFillStyle(
+      active ? COLORS.accent : COLORS.panel2,
+      active ? 1 : 0.95,
+    );
+    button.bg.setStrokeStyle(
+      2,
+      active ? COLORS.text : COLORS.frame,
+      active ? 1 : 0.9,
+    );
+    button.label.setColor(active ? "#0d1f12" : "#f3ffe9");
+  }
+}
+
+function createLeaderboardScreen(scene) {
+  const c = scene.add.container(0, 0).setDepth(22);
+
+  scene.leaderboardScreen = {
+    container: c,
+    title: scene.add
+      .text(GAME_WIDTH / 2, 102, "LEADERBOARD", {
+        fontFamily: "monospace",
+        fontSize: "30px",
+        color: "#e8ff6a",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5),
+    list: scene.add
+      .text(GAME_WIDTH / 2, 152, "", {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#f3ffe9",
+        align: "center",
+        lineSpacing: 6,
+      })
+      .setOrigin(0.5, 0),
+    footer: scene.add
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT - 24,
+        "PRESS START OR B1/B2 TO RETURN",
+        {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#8fb18e",
+        },
+      )
+      .setOrigin(0.5),
+  };
+
+  c.add(
+    scene.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 640, 450, COLORS.panel, 0.95)
+      .setStrokeStyle(2, COLORS.frame, 0.9),
+  );
+  c.add(scene.leaderboardScreen.title);
+  c.add(scene.leaderboardScreen.list);
+  c.add(scene.leaderboardScreen.footer);
+  c.setVisible(false);
+}
+
+function showLeaderboard(scene) {
+  hideAllScreens(scene);
+  scene.leaderboardScreen.container.setVisible(true);
+  scene.state.phase = "leaderboard";
+  refreshLeaderboardScreen(scene);
+  clearPressed(scene);
+}
+
+function refreshLeaderboardScreen(scene) {
+  const lines = [];
+  lines.push("RANK  MODE  TEAM  SCORE  RESULT  DATE");
+  lines.push("--------------------------------------");
+
+  if (!scene.state.highScores.length) {
+    lines.push("NO SAVED SCORES YET");
+  } else {
+    for (let i = 0; i < scene.state.highScores.length; i += 1) {
+      const entry = scene.state.highScores[i];
+      const rank = String(i + 1).padStart(2, "0");
+      const mode = entry.mode.padEnd(4, " ");
+      const team = entry.team.padEnd(4, " ");
+      const score = String(entry.score).padStart(4, " ");
+      const result = entry.winner.slice(0, 6).padEnd(6, " ");
+      lines.push(
+        `${rank}    ${mode}  ${team}  ${score}   ${result}  ${entry.savedAt}`,
+      );
+    }
+  }
+
+  if (scene.state.saveStatus) {
+    lines.push("");
+    lines.push(scene.state.saveStatus);
+  }
+
+  scene.leaderboardScreen.list.setText(lines.join("\n"));
+}
+
+function handleLeaderboardInput(scene) {
+  if (
+    consumeAnyPressedControl(scene, [
+      "START1",
+      "START2",
+      "P1_1",
+      "P2_1",
+      "P1_2",
+      "P2_2",
+    ])
+  ) {
+    showMenu(scene);
+  }
+}
+
+function hideAllScreens(scene) {
+  if (scene.menuScreen) scene.menuScreen.container.setVisible(false);
+  if (scene.teamScreen) scene.teamScreen.container.setVisible(false);
+  if (scene.bracketScreen) scene.bracketScreen.container.setVisible(false);
+  if (scene.matchScreen) scene.matchScreen.container.setVisible(false);
+  if (scene.finalScreen) scene.finalScreen.container.setVisible(false);
+  if (scene.leaderboardScreen)
+    scene.leaderboardScreen.container.setVisible(false);
 }
 
 function createControls(scene) {
@@ -583,985 +2256,46 @@ function createControls(scene) {
     scene.controls.held[arcadeCode] = false;
   };
 
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
 
-  scene.events.once('shutdown', () => {
-    window.removeEventListener('keydown', onKeyDown);
-    window.removeEventListener('keyup', onKeyUp);
+  scene.events.once("shutdown", () => {
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("keyup", onKeyUp);
   });
 }
 
-function startMatch(scene) {
-  scene.physics.resume();
-  scene.startScreen.container.setVisible(false);
-  buildTextBricks(scene);
-  resetBalls(scene);
-  scene.state.scores = { p1: 0, p2: 0 };
-  refreshHud(scene);
-  scene.state.phase = 'playing';
-  scene.hud.status.setText('');
+function clearPressed(scene) {
+  for (const key of Object.keys(scene.controls.pressed)) {
+    scene.controls.pressed[key] = false;
+  }
 }
 
-function createStartScreen(scene) {
-  scene.startScreen = {};
-  const c = scene.add.container(0, 0);
-  c.setDepth(15);
-  scene.startScreen.container = c;
-
-  c.add(scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.overlay, 0.97));
-
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, 88, 'PLATANUS HACK 26', {
-        fontFamily: 'monospace', fontSize: '16px', color: '#a8c700',
-      })
-      .setOrigin(0.5),
-  );
-  const titleMain = scene.add
-    .text(GAME_WIDTH / 2, 150, 'BUENOS AIRES EDITION', {
-      fontFamily: 'monospace', fontSize: '38px', color: '#e1ff00', fontStyle: 'bold',
-    })
-    .setOrigin(0.5);
-  c.add(titleMain);
-  scene.tweens.add({
-    targets: titleMain,
-    scale: 1.025,
-    alpha: 0.88,
-    duration: 1100,
-    yoyo: true,
-    repeat: -1,
-    ease: 'Sine.easeInOut',
-  });
-
-  scene.startScreen.buttons = [];
-  const buttonLabels = ['PLAY', 'LEADERBOARD', 'CONTROLS'];
-  for (let i = 0; i < buttonLabels.length; i += 1) {
-    const y = 232 + i * 50;
-    const bg = scene.add.rectangle(GAME_WIDTH / 2, y, 280, 42, COLORS.cell, 0.95);
-    bg.setStrokeStyle(2, COLORS.frame, 0.8);
-    const label = scene.add
-      .text(GAME_WIDTH / 2, y, buttonLabels[i], {
-        fontFamily: 'monospace', fontSize: '22px', color: '#f7ffd8', fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    c.add(bg);
-    c.add(label);
-    scene.startScreen.buttons.push({ bg, label });
+function normalizeIncomingKey(key) {
+  if (typeof key !== "string" || key.length === 0) {
+    return "";
   }
 
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, 380, 'SCOREBOARD', {
-        fontFamily: 'monospace', fontSize: '14px', color: '#e1ff00', fontStyle: 'bold',
-      })
-      .setOrigin(0.5),
-  );
-  scene.startScreen.leaderboard = scene.add
-    .text(GAME_WIDTH / 2, 402, '', {
-      fontFamily: 'monospace', fontSize: '13px', color: '#f7ffd8', align: 'center', lineSpacing: 4,
-    })
-    .setOrigin(0.5, 0);
-  c.add(scene.startScreen.leaderboard);
-
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 22, 'MOVE ↕   CONFIRM B / START', {
-        fontFamily: 'monospace', fontSize: '11px', color: '#6f7a4a',
-      })
-      .setOrigin(0.5),
-  );
-
-  c.setVisible(false);
-}
-
-function showStartScreen(scene) {
-  scene.state.phase = 'start';
-  scene.state.menu = { cursor: 0, cooldown: 0, lastAxis: 0 };
-  refreshStartScreenLeaderboard(scene);
-  updateStartMenuHighlight(scene);
-  scene.startScreen.container.setVisible(true);
-}
-
-function createLeaderboardScreen(scene) {
-  scene.leaderScreen = {};
-  const c = scene.add.container(0, 0);
-  c.setDepth(16);
-  scene.leaderScreen.container = c;
-
-  c.add(scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.overlay, 0.98));
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, 90, 'LEADERBOARD', {
-        fontFamily: 'monospace', fontSize: '30px', color: '#e1ff00', fontStyle: 'bold',
-      })
-      .setOrigin(0.5),
-  );
-
-  scene.leaderScreen.list = scene.add
-    .text(GAME_WIDTH / 2, 160, '', {
-      fontFamily: 'monospace', fontSize: '20px', color: '#f7ffd8',
-      align: 'center', lineSpacing: 12,
-    })
-    .setOrigin(0.5, 0);
-  c.add(scene.leaderScreen.list);
-
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 28, 'PRESS START TO GO BACK', {
-        fontFamily: 'monospace', fontSize: '12px', color: '#6f7a4a',
-      })
-      .setOrigin(0.5),
-  );
-
-  c.setVisible(false);
-}
-
-function createControlsScreen(scene) {
-  scene.controlsScreen = {};
-  const c = scene.add.container(0, 0);
-  c.setDepth(16);
-  scene.controlsScreen.container = c;
-
-  c.add(scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.overlay, 0.98));
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, 110, 'CONTROLS', {
-        fontFamily: 'monospace', fontSize: '30px', color: '#e1ff00', fontStyle: 'bold',
-      })
-      .setOrigin(0.5),
-  );
-
-  const lines = [
-    'P1   MOVE  A / D',
-    'P1   DASH  U',
-    '',
-    'P2   MOVE  ← / →',
-    'P2   DASH  R',
-    '',
-    'PAUSE      ENTER',
-  ];
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, 200, lines.join('\n'), {
-        fontFamily: 'monospace', fontSize: '18px', color: '#f7ffd8',
-        align: 'center', lineSpacing: 8,
-      })
-      .setOrigin(0.5, 0),
-  );
-
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 28, 'PRESS START TO GO BACK', {
-        fontFamily: 'monospace', fontSize: '12px', color: '#6f7a4a',
-      })
-      .setOrigin(0.5),
-  );
-
-  c.setVisible(false);
-}
-
-function showControlsScreen(scene) {
-  scene.startScreen.container.setVisible(false);
-  scene.controlsScreen.container.setVisible(true);
-  scene.state.phase = 'controls';
-}
-
-function showLeaderboardScreen(scene) {
-  const lines = scene.state.highScores.length
-    ? scene.state.highScores.map((e, i) =>
-        `${String(i + 1).padStart(2, '0')}  ${e.name.padEnd(3, ' ')}  ${String(e.score).padStart(3, ' ')}  ${e.winner}`,
-      )
-    : ['NO SAVED SCORES YET'];
-  scene.leaderScreen.list.setText(lines.join('\n'));
-  scene.startScreen.container.setVisible(false);
-  scene.leaderScreen.container.setVisible(true);
-  scene.state.phase = 'leaderboard';
-}
-
-function refreshStartScreenLeaderboard(scene) {
-  const lines = scene.state.highScores.length
-    ? scene.state.highScores.map((e, i) =>
-        `${String(i + 1).padStart(2, '0')} ${e.name.padEnd(3, ' ')} ${String(e.score).padStart(2, '0')} ${e.winner}`,
-      )
-    : ['NO SAVED SCORES YET'];
-  scene.startScreen.leaderboard.setText(lines.join('\n'));
-}
-
-function updateStartMenuHighlight(scene) {
-  const cursor = scene.state.menu.cursor;
-  scene.startScreen.buttons.forEach(({ bg, label }, i) => {
-    const active = i === cursor;
-    bg.setFillStyle(active ? COLORS.accent : COLORS.cell, active ? 1 : 0.95);
-    bg.setStrokeStyle(2, active ? COLORS.white : COLORS.frame, active ? 1 : 0.8);
-    label.setColor(active ? '#04110b' : '#f7ffd8');
-  });
-}
-
-function handleStartMenu(scene, time) {
-  const menu = scene.state.menu;
-  const axisY = getVerticalMenuAxis(scene.controls);
-
-  if (time >= menu.cooldown && axisY !== 0 && menu.lastAxis !== axisY) {
-    menu.cursor = Phaser.Math.Wrap(menu.cursor + axisY, 0, scene.startScreen.buttons.length);
-    menu.cooldown = time + 160;
-    updateStartMenuHighlight(scene);
-    playSound(scene, 'click');
-  }
-  if (axisY === 0) {
-    menu.lastAxis = 0;
-  } else {
-    menu.lastAxis = axisY;
+  if (key === " ") {
+    return "space";
   }
 
-  if (consumeAnyPressedControl(scene, ['P1_1', 'P2_1', 'P1_2', 'P2_2', 'START1', 'START2'])) {
-    playSound(scene, 'select');
-    startAmbientMusic(scene);
-    if (menu.cursor === 0) {
-      startMatch(scene);
-    } else if (menu.cursor === 1) {
-      showLeaderboardScreen(scene);
-    } else {
-      showControlsScreen(scene);
+  return key.toLowerCase();
+}
+
+function isControlHeld(scene, controlCode) {
+  return scene.controls.held[controlCode] === true;
+}
+
+function consumeAnyPressedControl(scene, controlCodes) {
+  for (const controlCode of controlCodes) {
+    if (scene.controls.pressed[controlCode]) {
+      scene.controls.pressed[controlCode] = false;
+      return true;
     }
   }
-}
 
-function createPauseScreen(scene) {
-  scene.pauseScreen = {};
-  const c = scene.add.container(0, 0);
-  c.setDepth(25);
-  scene.pauseScreen.container = c;
-
-  c.add(scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.overlay, 0.82));
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, 'PAUSED', {
-        fontFamily: 'monospace', fontSize: '52px', color: '#e1ff00', fontStyle: 'bold',
-      })
-      .setOrigin(0.5),
-  );
-  c.add(
-    scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 34, 'PRESS START TO RESUME', {
-        fontFamily: 'monospace', fontSize: '16px', color: '#a8ad8a',
-      })
-      .setOrigin(0.5),
-  );
-
-  c.setVisible(false);
-}
-
-function pauseMatch(scene) {
-  scene.state.phase = 'paused';
-  scene.physics.pause();
-  scene.pauseScreen.container.setVisible(true);
-}
-
-function resumeMatch(scene) {
-  scene.pauseScreen.container.setVisible(false);
-  scene.physics.resume();
-  scene.state.phase = 'playing';
-}
-
-function returnToStart(scene) {
-  scene.state.winner = null;
-  scene.state.nameEntry.letters = [];
-  scene.endGame.container.setVisible(false);
-  refreshLeaderboard(scene);
-  showStartScreen(scene);
-}
-
-function configurePaddleBody(body) {
-  body.setImmovable(true);
-  body.allowGravity = false;
-  body.setCollideWorldBounds(false);
-}
-
-function createBall(scene, x, y, color, startingOwner) {
-  const ball = scene.add.circle(x, y, 7, color, 1);
-  scene.physics.add.existing(ball);
-
-  ball.body.setCircle(7);
-  ball.body.setBounce(1, 1);
-  ball.body.setCollideWorldBounds(false);
-  ball.body.setAllowGravity(false);
-  ball.body.setDrag(0, 0);
-  ball.body.setMaxVelocity(340, 340);
-  ball.glowColor = color;
-  ball.lastTouchedBy = startingOwner;
-  ball.ghostFor = { p1: false, p2: false };
-  ball.previousY = y;
-
-  return ball;
-}
-
-function buildTextBricks(scene) {
-  scene.playfield.bricks.clear(true, true);
-
-  // Hand-drawn 4×7 pixel font, grid 34×28, CELL_W=20 CELL_H=12
-  // brickX = 60 + col*20 + 9   brickY = 132 + row*12 + 5
-  // BUENOS rows 4-10 (letter_col: B=2 U=7 E=12 N=17 O=22 S=27)
-  // AIRES  rows 16-22 (letter_col: A=5 I=10 R=15 E=20 S=25)
-  const brickData = [
-    // B
-    [109,185,2],[129,185,3],[149,185,0],
-    [109,197,3],[169,197,2],
-    [109,209,0],[169,209,3],
-    [109,221,1],[129,221,2],[149,221,3],
-    [109,233,2],[169,233,1],
-    [109,245,3],[169,245,2],
-    [109,257,0],[129,257,1],[149,257,2],
-    // U
-    [209,185,3],[269,185,2],
-    [209,197,0],[269,197,3],
-    [209,209,1],[269,209,0],
-    [209,221,2],[269,221,1],
-    [209,233,3],[269,233,2],
-    [209,245,0],[269,245,3],
-    [229,257,2],[249,257,3],
-    // E
-    [309,185,0],[329,185,1],[349,185,2],[369,185,3],
-    [309,197,1],
-    [309,209,2],
-    [309,221,3],[329,221,0],[349,221,1],
-    [309,233,0],
-    [309,245,1],
-    [309,257,2],[329,257,3],[349,257,0],[369,257,1],
-    // N
-    [409,185,1],[469,185,0],
-    [409,197,2],[429,197,3],[469,197,1],
-    [409,209,3],[449,209,1],[469,209,2],
-    [409,221,0],[469,221,3],
-    [409,233,1],[469,233,0],
-    [409,245,2],[469,245,1],
-    [409,257,3],[469,257,2],
-    // O
-    [529,185,3],[549,185,0],
-    [509,197,3],[569,197,2],
-    [509,209,0],[569,209,3],
-    [509,221,1],[569,221,0],
-    [509,233,2],[569,233,1],
-    [509,245,3],[569,245,2],
-    [529,257,1],[549,257,2],
-    // S
-    [629,185,0],[649,185,1],[669,185,2],
-    [609,197,0],
-    [609,209,1],
-    [629,221,3],[649,221,0],
-    [669,233,2],
-    [669,245,3],
-    [609,257,1],[629,257,2],[649,257,3],
-    // A
-    [189,329,2],[209,329,3],
-    [169,341,2],[229,341,1],
-    [169,353,3],[229,353,2],
-    [169,365,0],[189,365,1],[209,365,2],[229,365,3],
-    [169,377,1],[229,377,0],
-    [169,389,2],[229,389,1],
-    [169,401,3],[229,401,2],
-    // I
-    [269,329,2],[289,329,3],[309,329,0],[329,329,1],
-    [289,341,0],[309,341,1],
-    [289,353,1],[309,353,2],
-    [289,365,2],[309,365,3],
-    [289,377,3],[309,377,0],
-    [289,389,0],[309,389,1],
-    [269,401,0],[289,401,1],[309,401,2],[329,401,3],
-    // R
-    [369,329,3],[389,329,0],[409,329,1],
-    [369,341,0],[429,341,3],
-    [369,353,1],[429,353,0],
-    [369,365,2],[389,365,3],[409,365,0],
-    [369,377,3],[389,377,0],
-    [369,389,0],[409,389,2],
-    [369,401,1],[429,401,0],
-    // E
-    [469,329,0],[489,329,1],[509,329,2],[529,329,3],
-    [469,341,1],
-    [469,353,2],
-    [469,365,3],[489,365,0],[509,365,1],
-    [469,377,0],
-    [469,389,1],
-    [469,401,2],[489,401,3],[509,401,0],[529,401,1],
-    // S
-    [589,329,2],[609,329,3],[629,329,0],
-    [569,341,2],
-    [569,353,3],
-    [589,365,1],[609,365,2],
-    [629,377,0],
-    [629,389,1],
-    [569,401,3],[589,401,0],[609,401,1],
-  ];
-
-  const colors = [COLORS.brickA, COLORS.brickB, COLORS.brickC, COLORS.brickD];
-
-  for (const [bx, by, ci] of brickData) {
-    const brick = scene.add.rectangle(bx, by, 18, 10, colors[ci], 1);
-    brick.setStrokeStyle(1, COLORS.cell, 0.7);
-    scene.physics.add.existing(brick, true);
-    scene.playfield.bricks.add(brick);
-  }
-
-  scene.state.remainingBricks = scene.playfield.bricks.countActive(true);
-}
-
-function resetBalls(scene) {
-  const [topBall, bottomBall] = scene.playfield.balls;
-
-  topBall.setPosition(GAME_WIDTH / 2 - 110, 170);
-  bottomBall.setPosition(GAME_WIDTH / 2 + 110, GAME_HEIGHT - 170);
-
-  topBall.lastTouchedBy = 'p1';
-  bottomBall.lastTouchedBy = 'p2';
-  topBall.ghostFor = { p1: false, p2: false };
-  bottomBall.ghostFor = { p1: false, p2: false };
-  topBall.previousY = topBall.y;
-  bottomBall.previousY = bottomBall.y;
-  topBall.setAlpha(1);
-  bottomBall.setAlpha(1);
-
-  topBall.body.setVelocity(190, 210);
-  bottomBall.body.setVelocity(-190, -210);
-}
-
-function updatePaddles(scene, delta, time) {
-  const paddleSpeed = 320;
-  const dashSpeed = 1500;
-  const dashDuration = 110;
-  const dashCooldown = 750;
-  const p1Body = scene.playfield.p1Paddle.body;
-  const p2Body = scene.playfield.p2Paddle.body;
-  const deltaSeconds = delta / 1000;
-
-  let p1Dir = 0;
-  if (isControlHeld(scene, 'P1_L')) p1Dir -= 1;
-  if (isControlHeld(scene, 'P1_R')) p1Dir += 1;
-
-  let p2Dir = 0;
-  if (isControlHeld(scene, 'P2_L')) p2Dir -= 1;
-  if (isControlHeld(scene, 'P2_R')) p2Dir += 1;
-
-  tryStartDash(scene, 'p1', 'P1_1', p1Dir, time, dashDuration, dashCooldown);
-  tryStartDash(scene, 'p2', 'P2_1', p2Dir, time, dashDuration, dashCooldown);
-
-  let p1Velocity = p1Dir * paddleSpeed;
-  let p2Velocity = p2Dir * paddleSpeed;
-
-  if (time < scene.state.dash.p1.activeUntil) {
-    p1Velocity = scene.state.dash.p1.dir * dashSpeed;
-  }
-  if (time < scene.state.dash.p2.activeUntil) {
-    p2Velocity = scene.state.dash.p2.dir * dashSpeed;
-  }
-
-  p1Body.setVelocityX(0);
-  p2Body.setVelocityX(0);
-
-  scene.playfield.p1Paddle.setX(
-    Phaser.Math.Clamp(
-      scene.playfield.p1Paddle.x + p1Velocity * deltaSeconds,
-      110,
-      GAME_WIDTH - 110,
-    ),
-  );
-  scene.playfield.p2Paddle.setX(
-    Phaser.Math.Clamp(
-      scene.playfield.p2Paddle.x + p2Velocity * deltaSeconds,
-      110,
-      GAME_WIDTH - 110,
-    ),
-  );
-
-  if (typeof p1Body.updateFromGameObject === 'function') {
-    p1Body.updateFromGameObject();
-  }
-  if (typeof p2Body.updateFromGameObject === 'function') {
-    p2Body.updateFromGameObject();
-  }
-}
-
-function tryStartDash(scene, playerKey, buttonCode, dir, time, duration, cooldown) {
-  if (!scene.controls.pressed[buttonCode]) return;
-  scene.controls.pressed[buttonCode] = false;
-  if (dir === 0) return;
-  const dashState = scene.state.dash[playerKey];
-  if (time < dashState.cooldownUntil) return;
-  dashState.dir = dir;
-  dashState.activeUntil = time + duration;
-  dashState.cooldownUntil = time + cooldown;
-  playSound(scene, 'dash');
-  spawnDashTrail(scene, playerKey, dir);
-}
-
-function spawnDashTrail(scene, playerKey, dir) {
-  const paddle =
-    playerKey === 'p1' ? scene.playfield.p1Paddle : scene.playfield.p2Paddle;
-  const color = playerKey === 'p1' ? COLORS.p1 : COLORS.p2;
-  const trail = scene.add.rectangle(paddle.x, paddle.y, paddle.width, paddle.height, color, 0.6);
-  scene.tweens.add({
-    targets: trail,
-    x: paddle.x - dir * 50,
-    alpha: 0,
-    scaleX: 0.4,
-    duration: 260,
-    onComplete: () => trail.destroy(),
-  });
-}
-
-function updateBallGhostStates(scene) {
-  const topLine = scene.playfield.p1Paddle.y;
-  const bottomLine = scene.playfield.p2Paddle.y;
-
-  for (const ball of scene.playfield.balls) {
-    const previousY = typeof ball.previousY === 'number' ? ball.previousY : ball.y;
-    const currentY = ball.y;
-
-    if (!ball.ghostFor.p1 && previousY >= topLine && currentY < topLine) {
-      ball.ghostFor.p1 = true;
-      animatePenaltyCounter(scene, 'p1');
-      playSound(scene, 'penalty');
-    } else if (ball.ghostFor.p1 && previousY <= topLine && currentY > topLine) {
-      ball.ghostFor.p1 = false;
-    }
-
-    if (!ball.ghostFor.p2 && previousY <= bottomLine && currentY > bottomLine) {
-      ball.ghostFor.p2 = true;
-      animatePenaltyCounter(scene, 'p2');
-      playSound(scene, 'penalty');
-    } else if (
-      ball.ghostFor.p2 &&
-      previousY >= bottomLine &&
-      currentY < bottomLine
-    ) {
-      ball.ghostFor.p2 = false;
-    }
-
-    ball.setAlpha(ball.ghostFor.p1 || ball.ghostFor.p2 ? 0.45 : 1);
-    ball.previousY = currentY;
-  }
-}
-
-function checkBallEscape(scene) {
-  for (const ball of scene.playfield.balls) {
-    const escaped =
-      !isFinite(ball.x) || !isFinite(ball.y) ||
-      ball.x < 10 || ball.x > GAME_WIDTH - 10 ||
-      ball.y < 10 || ball.y > GAME_HEIGHT - 10;
-    if (!escaped) {
-      continue;
-    }
-    // Ball slipped out — respawn it near centre heading toward the field
-    const vy = ball.lastTouchedBy === 'p1' ? 220 : -220;
-    const vx = Phaser.Math.Between(-160, 160);
-    ball.setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2);
-    ball.ghostFor = { p1: false, p2: false };
-    ball.previousY = GAME_HEIGHT / 2;
-    ball.setAlpha(1);
-    ball.body.setVelocity(vx, vy);
-  }
-}
-
-function canBallCollideWithPaddle(ball, playerKey) {
-  return ball.active && !ball.ghostFor?.[playerKey];
-}
-
-function updateBallTrails(scene, time) {
-  if (time % 3 > 1) {
-    return;
-  }
-
-  for (const ball of scene.playfield.balls) {
-    const trail = scene.add.circle(ball.x, ball.y, 4, ball.glowColor, 0.2);
-    scene.playfield.ballTrails.add(trail);
-
-    scene.tweens.add({
-      targets: trail,
-      alpha: 0,
-      scaleX: 0.2,
-      scaleY: 0.2,
-      duration: 250,
-      onComplete: () => trail.destroy(),
-    });
-  }
-}
-
-function handleBallPaddleCollision(scene, ball, paddle, playerKey) {
-  ball.lastTouchedBy = playerKey;
-  const ballColor = playerKey === 'p1' ? COLORS.p1 : COLORS.p2;
-  ball.setFillStyle(ballColor);
-  ball.glowColor = ballColor;
-
-  const offset = (ball.x - paddle.x) / (paddle.width / 2);
-  const currentSpeed = Math.min(ball.body.velocity.length() + 8, 330);
-  const horizontalVelocity = Phaser.Math.Clamp(offset * 220, -220, 220);
-  const verticalDirection = paddle === scene.playfield.p1Paddle ? 1 : -1;
-  const verticalVelocity = Math.max(120, Math.sqrt(currentSpeed * currentSpeed - horizontalVelocity * horizontalVelocity));
-
-  ball.body.setVelocity(horizontalVelocity, verticalVelocity * verticalDirection);
-}
-
-function handleBallBrickCollision(scene, ball, brick) {
-  if (!brick.active) {
-    return;
-  }
-
-  const brickX = brick.x;
-  const brickY = brick.y;
-  const brickHalfWidth = brick.width / 2;
-  const brickHalfHeight = brick.height / 2;
-  const deltaX = ball.x - brickX;
-  const deltaY = ball.y - brickY;
-  const normalizedX = Math.abs(deltaX) / Math.max(brickHalfWidth, 1);
-  const normalizedY = Math.abs(deltaY) / Math.max(brickHalfHeight, 1);
-  const speedX = Math.abs(ball.body.velocity.x);
-  const speedY = Math.abs(ball.body.velocity.y);
-
-  if (normalizedX > normalizedY) {
-    ball.body.setVelocityX((deltaX >= 0 ? 1 : -1) * Math.max(speedX, 150));
-    ball.setX(
-      brickX +
-        (deltaX >= 0 ? 1 : -1) * (brickHalfWidth + ball.width / 2 + 1),
-    );
-  } else {
-    ball.body.setVelocityY((deltaY >= 0 ? 1 : -1) * Math.max(speedY, 150));
-    ball.setY(
-      brickY +
-        (deltaY >= 0 ? 1 : -1) * (brickHalfHeight + ball.height / 2 + 1),
-    );
-  }
-
-  if (typeof ball.body.updateFromGameObject === 'function') {
-    ball.body.updateFromGameObject();
-  }
-
-  if (brick.body) {
-    brick.body.enable = false;
-  }
-  scene.playfield.bricks.remove(brick);
-  brick.destroy();
-  scene.state.remainingBricks -= 1;
-
-  if (ball.lastTouchedBy === 'p1') {
-    scene.state.scores.p1 += 1;
-  } else if (ball.lastTouchedBy === 'p2') {
-    scene.state.scores.p2 += 1;
-  }
-
-  spawnBrickBurst(scene, brick.x, brick.y, brick.fillColor);
-  playSound(scene, 'brick');
-  refreshHud(scene);
-  maybeFinishMatch(scene);
-}
-
-function startAmbientMusic(scene) {
-  if (scene.state.musicStarted) {
-    return;
-  }
-  scene.state.musicStarted = true;
-
-  try {
-    const ctx = scene.sound.context;
-    if (!ctx) {
-      return;
-    }
-
-    // Master output
-    const out = ctx.createGain();
-    out.gain.value = 0.18;
-    out.connect(ctx.destination);
-
-    // Feedback delay for space/depth
-    const dly  = ctx.createDelay(2);
-    const dlFb = ctx.createGain();
-    dly.delayTime.value = 0.48;
-    dlFb.gain.value = 0.28;
-    dly.connect(dlFb);
-    dlFb.connect(dly);
-    dlFb.connect(out);
-
-    // Pad — Am7 chord (A2 C3 E3 G3) through chorused detuned oscs + LP filter
-    const padFilt = ctx.createBiquadFilter();
-    padFilt.type = 'lowpass';
-    padFilt.frequency.value = 800;
-    padFilt.Q.value = 1.4;
-    padFilt.connect(out);
-    padFilt.connect(dly);
-
-    // Very slow LFO sweeps the filter cutoff for movement
-    const lfo  = ctx.createOscillator();
-    const lfoG = ctx.createGain();
-    lfo.frequency.value = 0.055;
-    lfoG.gain.value = 430;
-    lfo.connect(lfoG);
-    lfoG.connect(padFilt.frequency);
-    lfo.start();
-
-    [
-      [110, 0, 'sawtooth'], [110, 11, 'sawtooth'], [110, -11, 'sawtooth'],
-      [130.81, 0, 'triangle'], [164.81, 5, 'triangle'], [196, -4, 'triangle'],
-    ].forEach(([f, d, type]) => {
-      const osc = ctx.createOscillator();
-      const g   = ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = f;
-      osc.detune.value = d;
-      g.gain.value = 0.028;
-      osc.connect(g);
-      g.connect(padFilt);
-      osc.start();
-    });
-
-    // Arp — A minor pentatonic, up and back down
-    const ARP  = [220, 261.63, 293.66, 329.63, 392, 440, 392, 329.63, 293.66, 261.63];
-    const STEP = 0.43;
-    const ALEN = ARP.length * STEP;
-
-    function scheduleArp(t0) {
-      ARP.forEach((freq, i) => {
-        const t   = t0 + i * STEP;
-        const osc = ctx.createOscillator();
-        const g   = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        osc.connect(g);
-        g.connect(out);
-        g.connect(dly);
-        g.gain.setValueAtTime(0.001, t);
-        g.gain.linearRampToValueAtTime(0.048, t + 0.018);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + STEP * 0.65);
-        osc.start(t);
-        osc.stop(t + STEP * 0.72);
-      });
-      scene.time.delayedCall((ALEN - 0.06) * 1000, () => scheduleArp(t0 + ALEN));
-    }
-
-    // Sub-bass pulse on the beat (55 Hz sine, 120 bpm)
-    const BEAT = 1.0;
-    function scheduleBass(t) {
-      const osc = ctx.createOscillator();
-      const g   = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 55;
-      osc.connect(g);
-      g.connect(out);
-      g.gain.setValueAtTime(0.28, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      osc.start(t);
-      osc.stop(t + 0.55);
-      scene.time.delayedCall(BEAT * 1000, () => scheduleBass(t + BEAT));
-    }
-
-    // Short high-pitched digital tick — every half-beat, offset for syncopation
-    const TICK = 0.5;
-    function scheduleTick(t) {
-      const osc = ctx.createOscillator();
-      const g   = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 1320;
-      osc.connect(g);
-      g.connect(out);
-      g.gain.setValueAtTime(0.028, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
-      osc.start(t);
-      osc.stop(t + 0.025);
-      scene.time.delayedCall(TICK * 1000, () => scheduleTick(t + TICK));
-    }
-
-    const t0 = ctx.currentTime + 0.3;
-    scheduleArp(t0);
-    scheduleBass(t0);
-    scheduleTick(t0 + 0.25);
-  } catch (_) {}
-}
-
-function playSound(scene, type) {
-  try {
-    const ctx = scene.sound && scene.sound.context ? scene.sound.context : new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    const now = ctx.currentTime;
-    if (type === 'brick') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else if (type === 'penalty') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
-      gain.gain.setValueAtTime(0.28, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-      osc.start(now);
-      osc.stop(now + 0.38);
-    } else if (type === 'click') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(1200, now);
-      osc.frequency.exponentialRampToValueAtTime(600, now + 0.04);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-      osc.start(now);
-      osc.stop(now + 0.05);
-    } else if (type === 'dash') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(900, now + 0.12);
-      gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-      osc.start(now);
-      osc.stop(now + 0.18);
-    } else if (type === 'select') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(700, now);
-      osc.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    }
-  } catch (_) {}
-}
-
-function spawnBrickBurst(scene, x, y, color) {
-  for (let index = 0; index < 6; index += 1) {
-    const particle = scene.add.rectangle(x, y, 4, 4, color, 1);
-    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const distance = Phaser.Math.Between(16, 42);
-
-    scene.tweens.add({
-      targets: particle,
-      x: x + Math.cos(angle) * distance,
-      y: y + Math.sin(angle) * distance,
-      alpha: 0,
-      angle: Phaser.Math.Between(-90, 90),
-      duration: Phaser.Math.Between(180, 320),
-      onComplete: () => particle.destroy(),
-    });
-  }
-}
-
-function refreshHud(scene) {
-  scene.hud.p1Score.setText(`P1 ${String(scene.state.scores.p1).padStart(2, '0')}`);
-  scene.hud.p2Score.setText(`P2 ${String(scene.state.scores.p2).padStart(2, '0')}`);
-  scene.hud.remaining.setText(`BRICKS ${String(scene.state.remainingBricks).padStart(3, '0')}`);
-}
-
-function animatePenaltyCounter(scene, playerKey) {
-  const text =
-    playerKey === 'p1' ? scene.hud.p1Score : scene.hud.p2Score;
-  const baseColor =
-    playerKey === 'p1'
-      ? scene.hud.scoreColors.p1
-      : scene.hud.scoreColors.p2;
-
-  scene.tweens.killTweensOf(text);
-  text.setColor(scene.hud.scoreColors.penalty);
-  text.setScale(1);
-  text.setAngle(0);
-
-  scene.tweens.add({
-    targets: text,
-    scaleX: 1.12,
-    scaleY: 1.12,
-    angle: playerKey === 'p1' ? -6 : 6,
-    duration: 90,
-    yoyo: true,
-    repeat: 1,
-    onComplete: () => {
-      text.setColor(baseColor);
-      text.setScale(1);
-      text.setAngle(0);
-    },
-  });
-}
-
-function maybeFinishMatch(scene) {
-  const { p1, p2 } = scene.state.scores;
-  const remaining = scene.state.remainingBricks;
-  const leaderScore = Math.max(p1, p2);
-  const trailingScore = Math.min(p1, p2);
-
-  if (remaining === 0 || leaderScore >= trailingScore + remaining) {
-    finishMatch(scene);
-  }
-}
-
-function finishMatch(scene) {
-  if (scene.state.phase !== 'playing') {
-    return;
-  }
-
-  scene.state.phase = 'gameover';
-  scene.physics.pause();
-  scene.hud.status.setText('');
-
-  const p1 = scene.state.scores.p1;
-  const p2 = scene.state.scores.p2;
-  const isTie = p1 === p2;
-
-  scene.state.winner = isTie ? 'draw' : p1 > p2 ? 'p1' : 'p2';
-  scene.state.winnerLabel =
-    scene.state.winner === 'p1'
-      ? 'PLAYER 1'
-      : scene.state.winner === 'p2'
-        ? 'PLAYER 2'
-        : 'DRAW';
-
-  scene.endGame.container.setVisible(true);
-  scene.endGame.summary.setText(
-    isTie
-      ? `${p1}  :  ${p2}`
-      : `${scene.state.winnerLabel}  ${Math.max(p1, p2)}  :  ${Math.min(p1, p2)}`,
-  );
-  scene.endGame.nameLabel.setText(
-    isTie ? 'DRAW TAG' : 'INITIALS',
-  );
-  scene.endGame.saveStatus.setText(scene.state.saveStatus);
-
-  scene.state.nameEntry.row = 0;
-  scene.state.nameEntry.col = 0;
-  scene.state.nameEntry.moveCooldownUntil = 0;
-  scene.state.nameEntry.confirmCooldownUntil = 0;
-  scene.state.nameEntry.lastMoveVector = { x: 0, y: 0 };
-  refreshNameEntry(scene);
-  updateLetterGridHighlight(scene);
-}
-
-function handleNameEntry(scene, time) {
-  const axisX = getHorizontalMenuAxis(scene.controls);
-  const axisY = getVerticalMenuAxis(scene.controls);
-  const entry = scene.state.nameEntry;
-
-  if (
-    time >= entry.moveCooldownUntil &&
-    (axisX !== 0 || axisY !== 0) &&
-    (entry.lastMoveVector.x !== axisX || entry.lastMoveVector.y !== axisY)
-  ) {
-    moveLetterSelection(scene, axisX, axisY);
-    entry.moveCooldownUntil = time + 160;
-    playSound(scene, 'click');
-  }
-
-  if (axisX === 0 && axisY === 0) {
-    entry.lastMoveVector = { x: 0, y: 0 };
-  } else {
-    entry.lastMoveVector = { x: axisX, y: axisY };
-  }
-
-  if (
-    time >= entry.confirmCooldownUntil &&
-    consumeAnyPressedControl(scene, ['P1_1', 'P2_1', 'P1_2', 'P2_2', 'START1', 'START2'])
-  ) {
-    entry.confirmCooldownUntil = time + 180;
-    playSound(scene, 'select');
-    activateCurrentLetter(scene);
-  }
+  return false;
 }
 
 function getHorizontalMenuAxis(controls) {
@@ -1586,148 +2320,484 @@ function getVerticalMenuAxis(controls) {
   return Phaser.Math.Clamp(axis, -1, 1);
 }
 
-function normalizeIncomingKey(key) {
-  if (typeof key !== 'string' || key.length === 0) {
-    return '';
+function getPlayerAxis(controls, player) {
+  const prefix = player === "P1" ? "P1" : "P2";
+  let x = 0;
+  let y = 0;
+
+  if (controls.held[`${prefix}_L`]) {
+    x -= 1;
+  }
+  if (controls.held[`${prefix}_R`]) {
+    x += 1;
+  }
+  if (controls.held[`${prefix}_U`]) {
+    y -= 1;
+  }
+  if (controls.held[`${prefix}_D`]) {
+    y += 1;
   }
 
-  if (key === ' ') {
-    return 'space';
+  return { x: Phaser.Math.Clamp(x, -1, 1), y: Phaser.Math.Clamp(y, -1, 1) };
+}
+
+function getConfirmCodes(player) {
+  return player === "P1"
+    ? ["P1_1", "P1_2", "START1"]
+    : ["P2_1", "P2_2", "START2"];
+}
+
+function createTournament(playerTeam) {
+  const entrants = shuffle([0, 1, 2, 3, 4, 5, 6, 7]);
+  const idx = entrants.indexOf(playerTeam);
+  if (idx >= 0) {
+    entrants.splice(idx, 1);
+  }
+  entrants.splice(Phaser.Math.Between(0, entrants.length), 0, playerTeam);
+
+  const rounds = [
+    { name: "QUARTERFINAL", matches: [] },
+    {
+      name: "SEMIFINAL",
+      matches: [
+        { a: null, b: null, winner: null, isPlayer: false },
+        { a: null, b: null, winner: null, isPlayer: false },
+      ],
+    },
+    {
+      name: "FINAL",
+      matches: [{ a: null, b: null, winner: null, isPlayer: false }],
+    },
+  ];
+
+  for (let i = 0; i < 4; i += 1) {
+    const a = entrants[i * 2];
+    const b = entrants[i * 2 + 1];
+    const isPlayer = a === playerTeam || b === playerTeam;
+    rounds[0].matches.push({
+      a,
+      b,
+      winner: isPlayer ? null : simulateAutoWinner(a, b),
+      isPlayer,
+    });
   }
 
-  return key.toLowerCase();
+  const tournament = {
+    playerTeam,
+    rounds,
+    currentRound: 0,
+    currentMatch: 0,
+    champion: null,
+  };
+
+  propagateTournament(tournament);
+  return tournament;
 }
 
-function isControlHeld(scene, controlCode) {
-  return scene.controls.held[controlCode] === true;
-}
+function propagateTournament(tournament) {
+  for (let r = 0; r < tournament.rounds.length - 1; r += 1) {
+    const current = tournament.rounds[r].matches;
+    const next = tournament.rounds[r + 1].matches;
 
-function consumeAnyPressedControl(scene, controlCodes) {
-  for (const controlCode of controlCodes) {
-    if (scene.controls.pressed[controlCode]) {
-      scene.controls.pressed[controlCode] = false;
-      return true;
+    for (let i = 0; i < next.length; i += 1) {
+      const sourceA = current[i * 2];
+      const sourceB = current[i * 2 + 1];
+      const a = sourceA ? sourceA.winner : null;
+      const b = sourceB ? sourceB.winner : null;
+
+      next[i].a = a;
+      next[i].b = b;
+      next[i].isPlayer =
+        a === tournament.playerTeam || b === tournament.playerTeam;
+
+      if (a === null || b === null) {
+        next[i].winner = null;
+        continue;
+      }
+
+      if (next[i].isPlayer) {
+        if (next[i].winner !== a && next[i].winner !== b) {
+          next[i].winner = null;
+        }
+      } else {
+        next[i].winner = simulateAutoWinner(a, b);
+      }
     }
   }
 
-  return false;
-}
-
-function moveLetterSelection(scene, axisX, axisY) {
-  const entry = scene.state.nameEntry;
-
-  if (axisY !== 0) {
-    entry.row = Phaser.Math.Wrap(entry.row + axisY, 0, LETTER_GRID.length);
-    entry.col = Math.min(entry.col, LETTER_GRID[entry.row].length - 1);
-  }
-
-  if (axisX !== 0) {
-    entry.col = Phaser.Math.Wrap(entry.col + axisX, 0, LETTER_GRID[entry.row].length);
-  }
-
-  updateLetterGridHighlight(scene);
-}
-
-function updateLetterGridHighlight(scene) {
-  const entry = scene.state.nameEntry;
-  for (const item of scene.endGame.gridLabels) {
-    const active = item.row === entry.row && item.col === entry.col;
-    item.cell.setFillStyle(active ? COLORS.accent : COLORS.cell, active ? 1 : 0.95);
-    item.cell.setStrokeStyle(2, active ? COLORS.white : COLORS.frame, active ? 1 : 0.8);
-    item.label.setColor(active ? '#04110b' : '#f7ffd8');
+  const finalMatch = tournament.rounds[tournament.rounds.length - 1].matches[0];
+  if (finalMatch.winner !== null) {
+    tournament.champion = finalMatch.winner;
   }
 }
 
-function activateCurrentLetter(scene) {
-  const entry = scene.state.nameEntry;
-  const selectedValue = LETTER_GRID[entry.row][entry.col];
+function findNextPlayerMatch(tournament) {
+  for (let r = 0; r < tournament.rounds.length; r += 1) {
+    const round = tournament.rounds[r];
+    for (let i = 0; i < round.matches.length; i += 1) {
+      const match = round.matches[i];
+      if (
+        match.isPlayer &&
+        match.winner === null &&
+        match.a !== null &&
+        match.b !== null
+      ) {
+        return { roundIndex: r, matchIndex: i };
+      }
+    }
+  }
+  return null;
+}
 
-  if (selectedValue === 'DEL') {
-    entry.letters.pop();
-    refreshNameEntry(scene);
+function simulateAutoWinner(teamA, teamB) {
+  const A = TEAMS[teamA];
+  const B = TEAMS[teamB];
+
+  let scoreA = 0;
+  let scoreB = 0;
+
+  for (let i = 0; i < PENALTIES_PER_SIDE; i += 1) {
+    if (
+      Math.random() <
+      Phaser.Math.Clamp(0.68 + A.attack * 0.4 - B.keep * 0.3, 0.2, 0.9)
+    ) {
+      scoreA += 1;
+    }
+    if (
+      Math.random() <
+      Phaser.Math.Clamp(0.68 + B.attack * 0.4 - A.keep * 0.3, 0.2, 0.9)
+    ) {
+      scoreB += 1;
+    }
+  }
+
+  while (scoreA === scoreB) {
+    if (Math.random() < Phaser.Math.Clamp(0.66 + A.clutch * 0.35, 0.2, 0.94)) {
+      scoreA += 1;
+    }
+    if (Math.random() < Phaser.Math.Clamp(0.66 + B.clutch * 0.35, 0.2, 0.94)) {
+      scoreB += 1;
+    }
+  }
+
+  return scoreA > scoreB ? teamA : teamB;
+}
+
+function isPressureKick(match) {
+  const baseDone =
+    match.takenA >= PENALTIES_PER_SIDE && match.takenB >= PENALTIES_PER_SIDE;
+  if (baseDone) {
+    return true;
+  }
+
+  const remainingA = PENALTIES_PER_SIDE - match.takenA;
+  const remainingB = PENALTIES_PER_SIDE - match.takenB;
+  const diff = Math.abs(match.scoreA - match.scoreB);
+
+  return remainingA <= 1 || remainingB <= 1 || diff <= 1;
+}
+
+function getTeamIndexBySide(match, side) {
+  return side === "A" ? match.teamA : match.teamB;
+}
+
+function teamCode(teamIndex) {
+  if (
+    typeof teamIndex !== "number" ||
+    teamIndex < 0 ||
+    teamIndex >= TEAMS.length
+  ) {
+    return "---";
+  }
+  return TEAMS[teamIndex].code;
+}
+
+function teamName(teamIndex) {
+  if (
+    typeof teamIndex !== "number" ||
+    teamIndex < 0 ||
+    teamIndex >= TEAMS.length
+  ) {
+    return "Unknown";
+  }
+  return TEAMS[teamIndex].name;
+}
+
+function createFlagImage(scene, teamIndex, x, y, width, height) {
+  ensureFlagTextures(scene);
+  return scene.add
+    .image(x, y, flagTextureKey(teamIndex))
+    .setDisplaySize(width, height);
+}
+
+function flagTextureKey(teamIndex) {
+  return `flag-${teamCode(teamIndex)}`;
+}
+
+function ensureFlagTextures(scene) {
+  const width = 36;
+  const height = 24;
+
+  for (let i = 0; i < TEAMS.length; i += 1) {
+    const key = flagTextureKey(i);
+    if (scene.textures.exists(key)) {
+      continue;
+    }
+
+    const g = scene.make.graphics({ add: false });
+    drawFlag(g, TEAMS[i].code, width, height);
+    g.lineStyle(1, 0x111111, 0.85);
+    g.strokeRect(0, 0, width, height);
+    g.generateTexture(key, width, height);
+    g.destroy();
+  }
+}
+
+function drawFlag(g, code, w, h) {
+  g.clear();
+
+  if (code === "ARG") {
+    g.fillStyle(0x74c6ef, 1);
+    g.fillRect(0, 0, w, h / 3);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, h / 3, w, h / 3);
+    g.fillStyle(0x74c6ef, 1);
+    g.fillRect(0, (h * 2) / 3, w, h / 3);
+    g.fillStyle(0xfacc15, 1);
+    g.fillCircle(w / 2, h / 2, 3);
     return;
   }
 
-  if (selectedValue === 'END') {
-    if (entry.letters.length === 0) {
-      scene.endGame.saveStatus.setText('Pick at least one character before saving.');
+  if (code === "BRA") {
+    g.fillStyle(0x1f8c3f, 1);
+    g.fillRect(0, 0, w, h);
+    g.fillStyle(0xfacc15, 1);
+    g.fillPoints(
+      [
+        new Phaser.Geom.Point(w / 2, 3),
+        new Phaser.Geom.Point(w - 4, h / 2),
+        new Phaser.Geom.Point(w / 2, h - 3),
+        new Phaser.Geom.Point(4, h / 2),
+      ],
+      true,
+    );
+    g.fillStyle(0x1d4ed8, 1);
+    g.fillCircle(w / 2, h / 2, 5);
+    return;
+  }
+
+  if (code === "URU") {
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, w, h);
+    g.fillStyle(0x60a5fa, 1);
+    for (let i = 0; i < 4; i += 1) {
+      g.fillRect(8, 3 + i * 6, w - 8, 2);
+    }
+    g.fillStyle(0xfacc15, 1);
+    g.fillCircle(4, 4, 3);
+    return;
+  }
+
+  if (code === "COL") {
+    g.fillStyle(0xfacc15, 1);
+    g.fillRect(0, 0, w, h / 2);
+    g.fillStyle(0x1d4ed8, 1);
+    g.fillRect(0, h / 2, w, h / 4);
+    g.fillStyle(0xdc2626, 1);
+    g.fillRect(0, (h * 3) / 4, w, h / 4);
+    return;
+  }
+
+  if (code === "MEX") {
+    g.fillStyle(0x15803d, 1);
+    g.fillRect(0, 0, w / 3, h);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(w / 3, 0, w / 3, h);
+    g.fillStyle(0xdc2626, 1);
+    g.fillRect((w * 2) / 3, 0, w / 3, h);
+    g.fillStyle(0x15803d, 1);
+    g.fillCircle(w / 2, h / 2, 2);
+    return;
+  }
+
+  if (code === "USA") {
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, w, h);
+    g.fillStyle(0xdc2626, 1);
+    for (let i = 0; i < 6; i += 1) {
+      g.fillRect(0, i * 4, w, 2);
+    }
+    g.fillStyle(0x1e3a8a, 1);
+    g.fillRect(0, 0, 14, 11);
+    return;
+  }
+
+  if (code === "FRA") {
+    g.fillStyle(0x1d4ed8, 1);
+    g.fillRect(0, 0, w / 3, h);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(w / 3, 0, w / 3, h);
+    g.fillStyle(0xdc2626, 1);
+    g.fillRect((w * 2) / 3, 0, w / 3, h);
+    return;
+  }
+
+  if (code === "ESP") {
+    g.fillStyle(0xdc2626, 1);
+    g.fillRect(0, 0, w, h / 4);
+    g.fillStyle(0xfacc15, 1);
+    g.fillRect(0, h / 4, w, h / 2);
+    g.fillStyle(0xdc2626, 1);
+    g.fillRect(0, (h * 3) / 4, w, h / 4);
+    return;
+  }
+
+  g.fillStyle(0x4b5563, 1);
+  g.fillRect(0, 0, w, h);
+}
+
+function colorHex(color) {
+  return `#${color.toString(16).padStart(6, "0")}`;
+}
+
+function shuffle(values) {
+  const copy = values.slice();
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Phaser.Math.Between(0, i);
+    const tmp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = tmp;
+  }
+  return copy;
+}
+
+function playSound(scene, type) {
+  try {
+    const ctx =
+      scene.sound && scene.sound.context
+        ? scene.sound.context
+        : new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+
+    if (type === "click") {
+      osc.type = "square";
+      osc.frequency.setValueAtTime(1100, now);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.04);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
       return;
     }
 
-    submitHighScore(scene);
-    return;
-  }
+    if (type === "select") {
+      osc.type = "square";
+      osc.frequency.setValueAtTime(680, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+      return;
+    }
 
-  if (entry.letters.length >= WINNING_NAME_LENGTH) {
-    entry.letters.shift();
-  }
+    if (type === "kick") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+      return;
+    }
 
-  entry.letters.push(selectedValue);
-  refreshNameEntry(scene);
+    if (type === "goal") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(980, now + 0.16);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+      return;
+    }
+
+    if (type === "save") {
+      osc.type = "square";
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(170, now + 0.2);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+      osc.start(now);
+      osc.stop(now + 0.24);
+      return;
+    }
+
+    if (type === "miss") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(90, now + 0.24);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+      osc.start(now);
+      osc.stop(now + 0.26);
+      return;
+    }
+
+    if (type === "win") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(1260, now + 0.24);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    }
+  } catch (_) {}
 }
 
-function refreshNameEntry(scene) {
-  const letters = scene.state.nameEntry.letters.slice();
-  while (letters.length < WINNING_NAME_LENGTH) {
-    letters.push('_');
-  }
-  scene.endGame.nameValue.setText(letters.join(' '));
-}
-
-function submitHighScore(scene) {
-  if (scene.state.phase !== 'gameover') {
-    return;
-  }
-
-  const initials = scene.state.nameEntry.letters.join('').slice(0, WINNING_NAME_LENGTH) || '???';
-  const winningScore =
-    scene.state.winner === 'p1'
-      ? scene.state.scores.p1
-      : scene.state.winner === 'p2'
-        ? scene.state.scores.p2
-        : scene.state.scores.p1;
-
-  const entry = {
-    name: initials,
-    winner: scene.state.winnerLabel,
-    score: winningScore,
-    detail: `${scene.state.scores.p1}-${scene.state.scores.p2}`,
+function persistMatchRecord(scene, entry) {
+  const record = {
+    mode: entry.mode || "UNK",
+    winner: entry.winner || "---",
+    team: entry.team || "---",
+    score: typeof entry.score === "number" ? entry.score : 0,
+    detail: entry.detail || "",
     savedAt: new Date().toISOString().slice(0, 10),
   };
 
-  scene.state.saveStatus = `Saved ${initials}! Press START to play again.`;
-  scene.endGame.saveStatus.setText(scene.state.saveStatus);
-  scene.state.phase = 'saved';
+  scene.state.saveStatus = "Saving result...";
 
-  persistHighScore(entry)
-    .then((nextScores) => {
-      scene.state.highScores = nextScores;
-      refreshLeaderboard(scene);
+  persistHighScore(record)
+    .then((scores) => {
+      scene.state.highScores = scores;
+      scene.state.saveStatus = "Result saved.";
+      refreshLeaderboardScreen(scene);
+      if (scene.finalScreen) {
+        scene.finalScreen.saveStatus.setText(scene.state.saveStatus);
+      }
     })
     .catch(() => {
-      scene.state.saveStatus = 'Could not save the score, but the game result stands.';
-      if (scene.state.phase === 'saved') {
-        scene.endGame.saveStatus.setText(scene.state.saveStatus);
+      scene.state.saveStatus = "Could not save result.";
+      refreshLeaderboardScreen(scene);
+      if (scene.finalScreen) {
+        scene.finalScreen.saveStatus.setText(scene.state.saveStatus);
       }
     });
 }
 
-function refreshLeaderboard(scene) {
-  const lines = scene.state.highScores.length
-    ? scene.state.highScores.map((entry, index) => {
-        const rank = String(index + 1).padStart(2, '0');
-        const score = String(entry.score).padStart(2, '0');
-        return `${rank} ${entry.name.padEnd(3, ' ')} ${score} ${entry.winner}`;
-      })
-    : ['NO SAVED SCORES YET'];
-
-  scene.endGame.leaderboard.setText(lines.join('\n'));
-}
-
 async function persistHighScore(entry) {
   const existing = await loadHighScores();
-  const nextScores = existing
+  const next = existing
     .concat(entry)
+    .filter(isHighScoreEntry)
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;
@@ -1736,8 +2806,8 @@ async function persistHighScore(entry) {
     })
     .slice(0, MAX_HIGH_SCORES);
 
-  await storageSet(STORAGE_KEY, nextScores);
-  return nextScores;
+  await storageSet(STORAGE_KEY, next);
+  return next;
 }
 
 async function loadHighScores() {
@@ -1746,18 +2816,50 @@ async function loadHighScores() {
     return [];
   }
 
-  return result.value.filter(isHighScoreEntry).slice(0, MAX_HIGH_SCORES);
+  const mapped = result.value
+    .map(normalizeScoreEntry)
+    .filter(isHighScoreEntry)
+    .slice(0, MAX_HIGH_SCORES);
+
+  return mapped;
+}
+
+function normalizeScoreEntry(entry) {
+  if (isHighScoreEntry(entry)) {
+    return entry;
+  }
+
+  if (
+    entry &&
+    typeof entry === "object" &&
+    typeof entry.name === "string" &&
+    typeof entry.winner === "string" &&
+    typeof entry.score === "number" &&
+    typeof entry.savedAt === "string"
+  ) {
+    return {
+      mode: "OLD",
+      winner: entry.winner,
+      team: entry.name,
+      score: entry.score,
+      detail: typeof entry.detail === "string" ? entry.detail : "",
+      savedAt: entry.savedAt,
+    };
+  }
+
+  return null;
 }
 
 function isHighScoreEntry(value) {
   return (
     value &&
-    typeof value === 'object' &&
-    typeof value.name === 'string' &&
-    typeof value.winner === 'string' &&
-    typeof value.score === 'number' &&
-    typeof value.detail === 'string' &&
-    typeof value.savedAt === 'string'
+    typeof value === "object" &&
+    typeof value.mode === "string" &&
+    typeof value.winner === "string" &&
+    typeof value.team === "string" &&
+    typeof value.score === "number" &&
+    typeof value.detail === "string" &&
+    typeof value.savedAt === "string"
   );
 }
 
@@ -1780,7 +2882,7 @@ function getStorage() {
     async set(key, value) {
       window.localStorage.setItem(key, JSON.stringify(value));
     },
-};
+  };
 }
 
 async function storageGet(key) {
