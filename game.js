@@ -1109,7 +1109,7 @@ function createBracketScreen(scene) {
 function startTournament(scene) {
   const humanTeams = scene.state.select.pickedTeams.slice();
   scene.state.tournament = createTournament(humanTeams);
-  showBracket(scene, "PRESS START TO PLAY NEXT MATCH");
+  showBracket(scene, "PRESS START TO PLAY NEXT ROUND");
 }
 
 function showBracket(scene, subtitle) {
