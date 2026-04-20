@@ -111,7 +111,7 @@ const TEAMS = [
   },
 ];
 
-const SHOOTER_POWERS = ["COMETA", "MULTISHOT", "ARCO XL"];
+const SHOOTER_POWERS = ["COMETA", "ARCO XL"];
 const KEEPER_POWERS = ["AUTOBUS", "AURA", "ORACULO"];
 
 const BACK_CODES = ["P1_6", "P2_6"];
@@ -1073,6 +1073,23 @@ function createBracketScreen(scene) {
         },
       )
       .setOrigin(0.5),
+    tutorialTab: scene.add
+      .rectangle(GAME_WIDTH / 2, 486, 286, 116, 0x142a1d, 0.92)
+      .setStrokeStyle(1, 0x3f7f4f, 0.95),
+    tutorialText: scene.add
+      .text(
+        GAME_WIDTH / 2,
+        486,
+        "COMO JUGAR\nMUEVE: PALANCA\nROJA=DELANTERO\nAMARILLA=PORTERO\nB1(U/R): PODER\nB4(J/F): CONFIRMA",
+        {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: "#b2c957",
+          align: "center",
+          lineSpacing: 3,
+        },
+      )
+      .setOrigin(0.5),
   };
 
   c.add(
@@ -1083,6 +1100,8 @@ function createBracketScreen(scene) {
   c.add(scene.bracketScreen.title);
   c.add(scene.bracketScreen.subtitle);
   c.add(scene.bracketScreen.list);
+  c.add(scene.bracketScreen.tutorialTab);
+  c.add(scene.bracketScreen.tutorialText);
   c.add(scene.bracketScreen.footer);
   c.setVisible(false);
 }
@@ -1107,6 +1126,13 @@ function renderBracket(scene, subtitle) {
     scene.bracketScreen.list.setText("No tournament data.");
     return;
   }
+
+  const hasPlayedHumanMatch = tournament.rounds.some((round) =>
+    round.matches.some((match) => match.isPlayer && match.winner !== null),
+  );
+  const introVisible = !hasPlayedHumanMatch;
+  scene.bracketScreen.tutorialTab.setVisible(introVisible);
+  scene.bracketScreen.tutorialText.setVisible(introVisible);
 
   scene.bracketScreen.subtitle.setText(subtitle || "");
 
@@ -1160,43 +1186,20 @@ function startNextTournamentMatch(scene) {
     return;
   }
 
-  const next = findNextPlayerMatch(tournament);
+  let next = findNextPlayerMatch(tournament);
   if (!next) {
-    const championTeam =
-      typeof tournament.champion === "number"
-        ? tournament.champion
-        : tournament.humanTeams[0];
-    const championIsHuman = isHumanTeam(tournament, championTeam);
-
-    if (championIsHuman) {
-      const championPlayer = getHumanPlayerIndex(tournament, championTeam);
-      showFinalScene(scene, {
-        title: "WORLD CHAMPION",
-        subtitle: `JUGADOR ${championPlayer} - ${teamName(championTeam)}`,
-        lines: [
-          "Recorrido completo del torneo",
-          "La presion no te pudo frenar",
-        ],
-        winnerTeam: championTeam,
-        options: ["NEW TOURNAMENT", "MENU"],
-        context: "tournamentChampion",
-      });
+    const resolvedRound = resolveNextCpuRound(tournament);
+    if (resolvedRound) {
+      showBracket(scene, `${resolvedRound} UPDATE - PRESS START`);
       return;
     }
 
-    const humanNames = tournament.humanTeams.map(teamName).join(", ");
+    if (typeof tournament.champion === "number") {
+      showTournamentResult(scene, tournament, tournament.champion, "");
+      return;
+    }
 
-    showFinalScene(scene, {
-      title: "ELIMINATED",
-      subtitle: `${teamName(championTeam)} se queda con la copa`,
-      lines: [
-        `Equipos humanos: ${humanNames}`,
-        "Intenta otra combinacion de jugadores",
-      ],
-      winnerTeam: championTeam,
-      options: ["NEW TOURNAMENT", "MENU"],
-      context: "tournamentDone",
-    });
+    showBracket(scene, "BRACKET UPDATE - PRESS START");
     return;
   }
 
@@ -1254,12 +1257,6 @@ function createMatchScreen(scene) {
     0xf2fff2,
     1,
   );
-  const povLeft = scene.add
-    .line(GAME_WIDTH / 2, GAME_HEIGHT - 18, 0, 0, -168, -352, COLORS.line, 0.25)
-    .setLineWidth(2, 2);
-  const povRight = scene.add
-    .line(GAME_WIDTH / 2, GAME_HEIGHT - 18, 0, 0, 168, -352, COLORS.line, 0.25)
-    .setLineWidth(2, 2);
   const shooterShadow = scene.add.ellipse(
     GAME_WIDTH / 2,
     GAME_HEIGHT - 30,
@@ -1305,11 +1302,12 @@ function createMatchScreen(scene) {
     goalFrame,
     goalLeft,
     goalRight,
-    povLeft,
-    povRight,
     shooterShadow,
     keeperShadow,
     reticle,
+    reticleRing,
+    reticleH,
+    reticleV,
     keeper,
     ball,
     crowdFlash,
@@ -1432,8 +1430,6 @@ function createMatchScreen(scene) {
   c.add(goalFrame);
   c.add(goalLeft);
   c.add(goalRight);
-  c.add(povLeft);
-  c.add(povRight);
   c.add(shooterShadow);
   c.add(keeperShadow);
   c.add(reticle);
@@ -1556,8 +1552,17 @@ function setupNextAttempt(scene, time) {
   scene.matchScreen.goalBurst.setAlpha(0).setScale(1);
   scene.matchScreen.goalBack.setAlpha(0.72);
   scene.matchScreen.crowdFx.removeAll(true);
+  scene.tweens.add({
+    targets: scene.matchScreen.reticle,
+    scaleX: 1.07,
+    scaleY: 1.07,
+    duration: 220,
+    yoyo: true,
+    repeat: -1,
+  });
 
   setAimCursor(scene, match, 0, AIM_Y_CENTER);
+  setReticleRoleColor(scene, true);
 
   updateMatchHud(scene);
 }
@@ -1611,13 +1616,25 @@ function updateMatchHud(scene) {
       ? match.pending.shooter
       : match.pending.keeper;
     const powerList = isShooterStage ? SHOOTER_POWERS : KEEPER_POWERS;
-    const powerValue = powerList[Phaser.Math.Clamp(choice.power || 0, 0, 2)];
+    const powerIndex = Phaser.Math.Clamp(
+      choice.power || 0,
+      0,
+      powerList.length - 1,
+    );
+    const powerValue = powerList[powerIndex];
+    const controlsHint =
+      activeControl === "human1"
+        ? "U CAMBIA  J CONFIRMA"
+        : activeControl === "human2"
+          ? "R CAMBIA  F CONFIRMA"
+          : "U/R CAMBIA  J/F CONFIRMA";
 
     scene.matchScreen.phaseHint.setText(
       activeControl === "cpu"
         ? `CPU ELIGIENDO...  ${weatherTag}`
-        : `PODER ${powerValue}  ${weatherTag}  B1/B2 CAMBIA  B3/B4/START`,
+        : `PODER ${powerValue}  ${weatherTag}  ${controlsHint}`,
     );
+    setReticleRoleColor(scene, isShooterStage);
 
     scene.matchScreen.secretHint.setText(
       isShooterStage
@@ -1695,6 +1712,7 @@ function lockCurrentStage(scene, match, time) {
     pending.cpuReadyAt = time + Phaser.Math.Between(320, 760);
 
     setAimCursor(scene, match, 0, AIM_Y_CENTER);
+    setReticleRoleColor(scene, false);
     clearPressed(scene);
     return;
   }
@@ -1732,26 +1750,23 @@ function handleSideChoice(scene, match, side, isShooterStage, time) {
   let moveRight = ["P1_R", "P2_R"];
   let moveUp = ["P1_U", "P2_U"];
   let moveDown = ["P1_D", "P2_D"];
-  let powerPrev = ["P1_1", "P2_1"];
-  let powerNext = ["P1_2", "P2_2"];
-  let confirm = ["P1_3", "P1_4", "START1", "P2_3", "P2_4", "START2"];
+  let powerCycle = ["P1_1", "P2_1"];
+  let confirm = ["P1_4", "P2_4"];
 
   if (control === "human1") {
     moveLeft = ["P1_L"];
     moveRight = ["P1_R"];
     moveUp = ["P1_U"];
     moveDown = ["P1_D"];
-    powerPrev = ["P1_1"];
-    powerNext = ["P1_2"];
-    confirm = ["P1_3", "P1_4", "START1"];
+    powerCycle = ["P1_1"];
+    confirm = ["P1_4"];
   } else if (control === "human2") {
     moveLeft = ["P2_L"];
     moveRight = ["P2_R"];
     moveUp = ["P2_U"];
     moveDown = ["P2_D"];
-    powerPrev = ["P2_1"];
-    powerNext = ["P2_2"];
-    confirm = ["P2_3", "P2_4", "START2"];
+    powerCycle = ["P2_1"];
+    confirm = ["P2_4"];
   }
 
   let moved = false;
@@ -1778,12 +1793,11 @@ function handleSideChoice(scene, match, side, isShooterStage, time) {
     playSound(scene, "click");
   }
 
-  if (consumeAnyPressedControl(scene, powerPrev)) {
-    choice.power = Phaser.Math.Wrap((choice.power || 0) - 1, 0, 3);
-    playSound(scene, "click");
-  }
-  if (consumeAnyPressedControl(scene, powerNext)) {
-    choice.power = Phaser.Math.Wrap((choice.power || 0) + 1, 0, 3);
+  if (consumeAnyPressedControl(scene, powerCycle)) {
+    const powerCount = isShooterStage
+      ? SHOOTER_POWERS.length
+      : KEEPER_POWERS.length;
+    choice.power = Phaser.Math.Wrap((choice.power || 0) + 1, 0, powerCount);
     playSound(scene, "click");
   }
 
@@ -1818,12 +1832,7 @@ function applyCpuChoice(match, side, isShooter) {
     }
     choice.x = x;
     choice.y = y;
-    choice.power =
-      Math.random() < (isPressureKick(match) ? 0.42 : 0.28)
-        ? 0
-        : Math.random() < 0.54
-          ? 1
-          : 2;
+    choice.power = Math.random() < (isPressureKick(match) ? 0.5 : 0.38) ? 0 : 1;
   } else {
     let guessX = Phaser.Math.Between(AIM_X_MIN, AIM_X_MAX);
     let guessY = Phaser.Math.Between(AIM_Y_MIN, AIM_Y_MAX);
@@ -1862,6 +1871,13 @@ function setAimCursor(scene, match, x, y) {
 
 function syncReticle(scene, x, y) {
   scene.matchScreen.reticle.setPosition(aimToWorldX(x), aimToWorldY(y));
+}
+
+function setReticleRoleColor(scene, isShooterStage) {
+  const color = isShooterStage ? 0xff4b4b : 0xe8ff6a;
+  scene.matchScreen.reticleRing.setStrokeStyle(2, color, 1);
+  scene.matchScreen.reticleH.setFillStyle(color, 1);
+  scene.matchScreen.reticleV.setFillStyle(color, 1);
 }
 
 function aimToWorldX(x) {
@@ -1932,17 +1948,34 @@ function resolvePenalty(match) {
   const shotX = Phaser.Math.Clamp(shot.x + windX, AIM_X_MIN, AIM_X_MAX);
   const shotY = shot.y;
   const rain = weather === "rain";
-  const shooterPower = Phaser.Math.Clamp(shot.power || 0, 0, 2);
-  const keeperPower = Phaser.Math.Clamp(keep.power || 0, 0, 2);
+  const shooterPower = Phaser.Math.Clamp(
+    shot.power || 0,
+    0,
+    SHOOTER_POWERS.length - 1,
+  );
+  const keeperPower = Phaser.Math.Clamp(
+    keep.power || 0,
+    0,
+    KEEPER_POWERS.length - 1,
+  );
 
   const fireShot = shooterPower === 0;
-  const multiShot = shooterPower === 1;
-  const goalXL = shooterPower === 2;
+  const goalXL = shooterPower === 1;
   const busWall = keeperPower === 0;
   const auraSave = keeperPower === 1;
   const oracleSave = keeperPower === 2;
 
-  let goalChance = 0.73;
+  let keepX = keep.x;
+  const oracleShift =
+    oracleSave &&
+    shotX !== 0 &&
+    Math.sign(shotX) !== Math.sign(keepX) &&
+    Math.random() < 0.56;
+  if (oracleShift) {
+    keepX = Math.sign(shotX) * Math.max(1, Math.abs(keepX));
+  }
+
+  let goalChance = 0.69;
   goalChance += shooterTeam.attack * 0.55;
   goalChance -= keeperTeam.keep * 0.55;
 
@@ -1953,13 +1986,11 @@ function resolvePenalty(match) {
     missChance += 0.08;
   }
 
-  const dx = shotX - keep.x;
+  const dx = shotX - keepX;
   const dy = shotY - keep.y;
   const dist = Math.hypot(dx, dy);
   const directionMatch =
-    shotX === 0
-      ? Math.abs(keep.x) <= 1
-      : Math.sign(shotX) === Math.sign(keep.x);
+    shotX === 0 ? Math.abs(keepX) <= 1 : Math.sign(shotX) === Math.sign(keepX);
   const verticalRead = Math.abs(shotY - keep.y) <= 1;
   const keeperRead = directionMatch && verticalRead;
   const wideShot = Math.abs(shotX) >= AIM_X_MAX - 1;
@@ -1976,18 +2007,20 @@ function resolvePenalty(match) {
     savePressure += 0.08;
   }
 
-  if (busWall) {
-    savePressure += 0.2;
+  if (busWall && wideShot) {
+    savePressure += directionMatch ? (highShot || lowShot ? 0.32 : 0.24) : 0.1;
+  } else if (busWall) {
+    savePressure += 0.12;
   }
   if (auraSave) {
-    savePressure += dist < 2.2 ? 0.18 : 0.06;
+    savePressure += dist < 1.2 ? 0.24 : dist < 2 ? 0.12 : 0.04;
   }
-  if (oracleSave && directionMatch) {
-    savePressure += 0.22;
+  if (oracleSave) {
+    savePressure += directionMatch ? 0.18 : oracleShift ? 0.12 : 0;
   }
 
   if (!directionMatch) {
-    goalChance += 0.03;
+    goalChance += 0.01;
   }
 
   goalChance -= savePressure;
@@ -2001,20 +2034,14 @@ function resolvePenalty(match) {
   if (centerLane && !highShot && !lowShot) {
     goalChance += 0.04;
   }
-  if (auraSave && lowShot) {
-    goalChance -= 0.04;
-  }
-  if (busWall && highShot) {
-    goalChance -= 0.03;
-  }
 
   if (fireShot) {
-    goalChance += 0.18;
-    missChance += 0.01;
+    goalChance += 0.12;
+    missChance += 0.04;
   }
   if (goalXL) {
-    goalChance += 0.1;
-    missChance -= 0.03;
+    goalChance += 0.07;
+    missChance -= 0.02;
   }
 
   let postChance = 0.02;
@@ -2022,7 +2049,7 @@ function resolvePenalty(match) {
     postChance -= 0.01;
   }
   if (busWall) {
-    postChance += 0.03;
+    postChance += 0.01;
   }
   let event = "";
 
@@ -2047,45 +2074,24 @@ function resolvePenalty(match) {
     }
   }
 
-  goalChance = Phaser.Math.Clamp(goalChance, 0.08, 0.94);
+  goalChance = Phaser.Math.Clamp(goalChance, 0.08, 0.9);
   missChance = Phaser.Math.Clamp(missChance, 0.01, 0.25);
   postChance = Phaser.Math.Clamp(postChance, 0.01, 0.23);
 
   let result = "goal";
-  let goalValue = 0;
-  let multiTargets = null;
-
-  if (multiShot) {
-    multiTargets = [];
-    const multiChance = Phaser.Math.Clamp(goalChance - 0.08, 0.07, 0.9);
-    for (let i = 0; i < 3; i += 1) {
-      const tx = Phaser.Math.Between(AIM_X_MIN, AIM_X_MAX);
-      const ty = Phaser.Math.Between(AIM_Y_MIN, AIM_Y_MAX);
-      const lanePenalty = Math.abs(tx) >= AIM_X_MAX - 1 ? 0.04 : 0;
-      const hit = Math.random() < multiChance - lanePenalty;
-      multiTargets.push({ x: tx, y: ty, goal: hit });
-      if (hit) {
-        goalValue += 1;
-      }
-    }
-    result = goalValue > 0 ? "goal" : Math.random() < 0.55 ? "save" : "miss";
-    if (goalValue > 0) {
-      event = event || `MULTISHOT X${goalValue}`;
-    }
-  } else {
-    const roll = Math.random();
-    if (roll < missChance) {
-      result = "miss";
-    } else if (roll < missChance + postChance) {
-      result =
-        event === "REBOTE EN EL POSTE" && Math.random() < 0.68
-          ? "postIn"
-          : "postOut";
-    } else if (roll > goalChance) {
-      result = "save";
-    }
-    goalValue = result === "goal" || result === "postIn" ? 1 : 0;
+  const roll = Math.random();
+  if (roll < missChance) {
+    result = "miss";
+  } else if (roll < missChance + postChance) {
+    result =
+      event === "REBOTE EN EL POSTE" && Math.random() < 0.68
+        ? "postIn"
+        : "postOut";
+  } else if (roll > goalChance) {
+    result = "save";
   }
+
+  let goalValue = result === "goal" || result === "postIn" ? 1 : 0;
 
   if (event === "RESBALON") {
     result = "miss";
@@ -2129,24 +2135,22 @@ function resolvePenalty(match) {
   }
 
   const text =
-    goalValue > 1
-      ? `${goalValue} GOLES!`
-      : result === "goal"
-        ? "GOAL!"
-        : result === "save"
-          ? "SAVED!"
-          : result === "postIn"
-            ? "POST AND IN!"
-            : result === "postOut"
-              ? "POST OUT!"
-              : "MISS!";
+    result === "goal"
+      ? "GOAL!"
+      : result === "save"
+        ? "SAVED!"
+        : result === "postIn"
+          ? "POST AND IN!"
+          : result === "postOut"
+            ? "POST OUT!"
+            : "MISS!";
 
   return {
     shooterSide,
     keeperSide,
     shotX,
     shotY,
-    keepX: keep.x,
+    keepX,
     keepY: keep.y,
     shooterPower,
     keeperPower,
@@ -2159,7 +2163,6 @@ function resolvePenalty(match) {
     keeperRead,
     postSign,
     missVisual,
-    multiTargets,
     text,
   };
 }
@@ -2183,8 +2186,7 @@ function animateOutcome(scene, match, outcome, onDone) {
   const keeperAngle = keeperDir * 16 + keeperYBias;
   const keeperScaleX = keeperDir === 0 ? 1 : 1.14;
   const keeperScaleY = keeperDir === 0 ? 1 : 0.9;
-  const ballSpin =
-    outcome.shooterPower === 0 ? 700 : outcome.shooterPower === 1 ? 560 : 430;
+  const ballSpin = outcome.shooterPower === 0 ? 700 : 430;
   const ballScale =
     outcome.result === "save" ? 0.88 : outcome.shooterPower === 0 ? 0.68 : 0.72;
   const postX = GAME_WIDTH / 2 + (outcome.postSign || 1) * 164;
@@ -2221,7 +2223,7 @@ function animateOutcome(scene, match, outcome, onDone) {
   scene.tweens.killTweensOf(scene.matchScreen.goalBurst);
   scene.tweens.killTweensOf(scene.matchScreen.reticle);
 
-  if (outcome.shooterPower === 2) {
+  if (outcome.shooterPower === 1) {
     scene.tweens.add({
       targets: [scene.matchScreen.goalBack, scene.matchScreen.goalFrame],
       scaleX: 1.08,
@@ -2289,31 +2291,6 @@ function animateOutcome(scene, match, outcome, onDone) {
     });
   }
 
-  if (outcome.shooterPower === 1 && Array.isArray(outcome.multiTargets)) {
-    for (let i = 0; i < outcome.multiTargets.length; i += 1) {
-      const t = outcome.multiTargets[i];
-      const split = scene.add
-        .image(GAME_WIDTH / 2, 516, "ball-sprite")
-        .setScale(0.9)
-        .setAlpha(i === 0 ? 0.95 : 0.62);
-      scene.matchScreen.crowdFx.add(split);
-      scene.tweens.add({
-        targets: split,
-        x: aimToWorldX(t.x),
-        y: aimToWorldY(t.y),
-        scaleX: 0.62,
-        scaleY: 0.62,
-        alpha: t.goal ? 0.72 : 0.18,
-        angle: ballSpin * (0.62 + i * 0.08),
-        duration: 300 + i * 28,
-        ease: "Cubic.easeOut",
-        onComplete: () => {
-          split.destroy();
-        },
-      });
-    }
-  }
-
   if (outcome.shooterPower === 0) {
     const flame = scene.add
       .ellipse(GAME_WIDTH / 2, 516, 26, 14, 0xff8a2c, 0.52)
@@ -2338,6 +2315,8 @@ function animateOutcome(scene, match, outcome, onDone) {
     if (outcome.result === "goal" || outcome.result === "postIn") {
       playGoalCelebration(scene, match, outcome, ball.x, ball.y);
       scene.cameras.main.shake(120, 0.0035);
+    } else if (outcome.result === "save") {
+      scene.cameras.main.shake(70, 0.0018);
     }
 
     if (isPressureKick(match)) {
@@ -2625,37 +2604,14 @@ function finishMatch(scene, match) {
   slot.winner = winnerTeam;
   propagateTournament(tournament);
 
+  if (typeof tournament.champion === "number") {
+    showTournamentResult(scene, tournament, tournament.champion, scoreLine);
+    return;
+  }
+
   const next = findNextPlayerMatch(tournament);
   if (!next) {
-    const championTeam =
-      typeof tournament.champion === "number"
-        ? tournament.champion
-        : winnerTeam;
-
-    if (isHumanTeam(tournament, championTeam)) {
-      const championPlayer = getHumanPlayerIndex(tournament, championTeam);
-      showFinalScene(scene, {
-        title: "WORLD CHAMPION",
-        subtitle: `JUGADOR ${championPlayer} - ${teamName(championTeam)}`,
-        lines: ["Ruta completada: Cuartos, Semis y Final"],
-        winnerTeam: championTeam,
-        options: ["NEW TOURNAMENT", "MENU"],
-        context: "tournamentChampion",
-      });
-      playSound(scene, "win");
-      return;
-    }
-
-    const humanNames = tournament.humanTeams.map(teamName).join(", ");
-
-    showFinalScene(scene, {
-      title: "ELIMINATED",
-      subtitle: `${teamName(championTeam)} te deja afuera`,
-      lines: [`Resultado ${scoreLine}`, `Equipos humanos: ${humanNames}`],
-      winnerTeam: championTeam,
-      options: ["NEW TOURNAMENT", "MENU"],
-      context: "tournamentLose",
-    });
+    showBracket(scene, "BRACKET UPDATE - PRESS START");
     return;
   }
 
@@ -2663,6 +2619,41 @@ function finishMatch(scene, match) {
     scene,
     `${tournament.rounds[next.roundIndex].name} READY - PRESS START`,
   );
+}
+
+function showTournamentResult(scene, tournament, championTeam, scoreLine) {
+  if (isHumanTeam(tournament, championTeam)) {
+    const championPlayer = getHumanPlayerIndex(tournament, championTeam);
+    showFinalScene(scene, {
+      title: "WORLD CHAMPION",
+      subtitle: `JUGADOR ${championPlayer} - ${teamName(championTeam)}`,
+      lines: ["Ruta completada: Cuartos, Semis y Final"],
+      winnerTeam: championTeam,
+      options: ["NEW TOURNAMENT", "MENU"],
+      context: "tournamentChampion",
+    });
+    playSound(scene, "win");
+    return;
+  }
+
+  const humanNames = tournament.humanTeams.map(teamName).join(", ");
+  const hasScore = scoreLine && scoreLine.length > 0;
+
+  showFinalScene(scene, {
+    title: "ELIMINATED",
+    subtitle: hasScore
+      ? `${teamName(championTeam)} te deja afuera`
+      : `${teamName(championTeam)} se queda con la copa`,
+    lines: hasScore
+      ? [`Resultado ${scoreLine}`, `Equipos humanos: ${humanNames}`]
+      : [
+          `Equipos humanos: ${humanNames}`,
+          "Intenta otra combinacion de jugadores",
+        ],
+    winnerTeam: championTeam,
+    options: ["NEW TOURNAMENT", "MENU"],
+    context: hasScore ? "tournamentLose" : "tournamentDone",
+  });
 }
 
 function scoreFromMatch(match) {
@@ -3111,7 +3102,7 @@ function createTournament(humanTeams) {
     rounds[0].matches.push({
       a,
       b,
-      winner: isPlayer ? null : simulateAutoWinner(a, b),
+      winner: null,
       isPlayer,
     });
   }
@@ -3149,20 +3140,14 @@ function propagateTournament(tournament) {
         continue;
       }
 
-      if (next[i].isPlayer) {
-        if (next[i].winner !== a && next[i].winner !== b) {
-          next[i].winner = null;
-        }
-      } else {
-        next[i].winner = simulateAutoWinner(a, b);
+      if (next[i].winner !== a && next[i].winner !== b) {
+        next[i].winner = null;
       }
     }
   }
 
   const finalMatch = tournament.rounds[tournament.rounds.length - 1].matches[0];
-  if (finalMatch.winner !== null) {
-    tournament.champion = finalMatch.winner;
-  }
+  tournament.champion = finalMatch.winner !== null ? finalMatch.winner : null;
 }
 
 function findNextPlayerMatch(tournament) {
@@ -3181,6 +3166,41 @@ function findNextPlayerMatch(tournament) {
     }
   }
   return null;
+}
+
+function resolveNextCpuRound(tournament) {
+  for (let r = 0; r < tournament.rounds.length; r += 1) {
+    const round = tournament.rounds[r];
+    const ready = [];
+    let hasHumanPending = false;
+
+    for (let i = 0; i < round.matches.length; i += 1) {
+      const match = round.matches[i];
+      if (match.winner !== null || match.a === null || match.b === null) {
+        continue;
+      }
+      if (match.isPlayer) {
+        hasHumanPending = true;
+        break;
+      }
+      ready.push(match);
+    }
+
+    if (hasHumanPending) {
+      return "";
+    }
+
+    if (ready.length > 0) {
+      for (let i = 0; i < ready.length; i += 1) {
+        const match = ready[i];
+        match.winner = simulateAutoWinner(match.a, match.b);
+      }
+      propagateTournament(tournament);
+      return round.name;
+    }
+  }
+
+  return "";
 }
 
 function simulateAutoWinner(teamA, teamB) {
