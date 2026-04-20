@@ -1552,14 +1552,6 @@ function setupNextAttempt(scene, time) {
   scene.matchScreen.goalBurst.setAlpha(0).setScale(1);
   scene.matchScreen.goalBack.setAlpha(0.72);
   scene.matchScreen.crowdFx.removeAll(true);
-  scene.tweens.add({
-    targets: scene.matchScreen.reticle,
-    scaleX: 1.07,
-    scaleY: 1.07,
-    duration: 220,
-    yoyo: true,
-    repeat: -1,
-  });
 
   setAimCursor(scene, match, 0, AIM_Y_CENTER);
   setReticleRoleColor(scene, true);
@@ -2315,8 +2307,6 @@ function animateOutcome(scene, match, outcome, onDone) {
     if (outcome.result === "goal" || outcome.result === "postIn") {
       playGoalCelebration(scene, match, outcome, ball.x, ball.y);
       scene.cameras.main.shake(120, 0.0035);
-    } else if (outcome.result === "save") {
-      scene.cameras.main.shake(70, 0.0018);
     }
 
     if (isPressureKick(match)) {
