@@ -6,118 +6,34 @@ const AIM_X_MIN = -3;
 const AIM_X_MAX = 3;
 const AIM_Y_MIN = 0;
 const AIM_Y_MAX = 4;
-const AIM_Y_CENTER = Math.floor((AIM_Y_MIN + AIM_Y_MAX) / 2);
+const AIM_STEP = 0.5;
+const AIM_Y_CENTER = 2;
+const SHOOTER_COMBO_POOL = [1, 2, 3, 5, 6];
+const KEEPER_COMBO_POOL = [1, 2, 3, 4, 5];
+const COMBO_LENGTH = 3;
+const AIM_BAR_WIDTH = 276;
+const SHOOTER_BAR_RATE = 0.0002;
+const KEEPER_BAR_RATE = 0.00016;
 
 const COLORS = {
-  bg: 0x08130d,
-  bgDark: 0x030705,
-  panel: 0x102117,
-  panel2: 0x173021,
-  frame: 0x3f7f4f,
-  accent: 0xe8ff6a,
-  accentSoft: 0xb2c957,
-  text: 0xf3ffe9,
-  subtext: 0x8fb18e,
-  danger: 0xff7f7f,
-  goal: 0x5dff89,
-  save: 0x7ec4ff,
-  miss: 0xffb06a,
-  turf: 0x1f5f35,
-  turf2: 0x2f7f45,
-  line: 0xdfffd4,
-  shadow: 0x0a120e,
+  bg: 0x08130d, panel: 0x102117, panel2: 0x173021, frame: 0x3f7f4f,
+  accent: 0xe8ff6a, accentSoft: 0xb2c957, text: 0xf3ffe9, danger: 0xff7f7f,
+  goal: 0x5dff89, line: 0xdfffd4, shadow: 0x0a120e,
 };
 
 const TEAMS = [
-  {
-    code: "ARG",
-    name: "Argentina",
-    primary: 0x78cdfc,
-    secondary: 0xffffff,
-    attack: 0.09,
-    keep: 0.02,
-    clutch: 0.07,
-    trait: "Precision alta",
-  },
-  {
-    code: "BRA",
-    name: "Brasil",
-    primary: 0xfde047,
-    secondary: 0x0a6e3a,
-    attack: 0.08,
-    keep: 0.01,
-    clutch: 0.04,
-    trait: "Tiro impredecible",
-  },
-  {
-    code: "URU",
-    name: "Uruguay",
-    primary: 0x93c5fd,
-    secondary: 0x0f172a,
-    attack: 0.05,
-    keep: 0.03,
-    clutch: 0.05,
-    trait: "Potencia de disparo",
-  },
-  {
-    code: "COL",
-    name: "Colombia",
-    primary: 0xfacc15,
-    secondary: 0x1d4ed8,
-    attack: 0.04,
-    keep: 0.04,
-    clutch: 0.03,
-    trait: "Balance total",
-  },
-  {
-    code: "MEX",
-    name: "Mexico",
-    primary: 0x22c55e,
-    secondary: 0xffffff,
-    attack: 0.05,
-    keep: 0.02,
-    clutch: 0.09,
-    trait: "Crece bajo presion",
-  },
-  {
-    code: "USA",
-    name: "Estados Unidos",
-    primary: 0x60a5fa,
-    secondary: 0xef4444,
-    attack: 0.03,
-    keep: 0.08,
-    clutch: 0.03,
-    trait: "Arquero estable",
-  },
-  {
-    code: "FRA",
-    name: "Francia",
-    primary: 0x2563eb,
-    secondary: 0xf8fafc,
-    attack: 0.07,
-    keep: 0.03,
-    clutch: 0.04,
-    trait: "Lectura dificil",
-  },
-  {
-    code: "ESP",
-    name: "Espana",
-    primary: 0xdc2626,
-    secondary: 0xfacc15,
-    attack: 0.06,
-    keep: 0.04,
-    clutch: 0.04,
-    trait: "Colocacion tecnica",
-  },
+  { code: "ARG", name: "Argentina", primary: 0x78cdfc, secondary: 0xffffff, attack: 0.09, keep: 0.02, clutch: 0.07, trait: "Precision alta" },
+  { code: "BRA", name: "Brasil", primary: 0xfde047, secondary: 0x0a6e3a, attack: 0.08, keep: 0.01, clutch: 0.04, trait: "Tiro impredecible" },
+  { code: "URU", name: "Uruguay", primary: 0x93c5fd, secondary: 0x0f172a, attack: 0.05, keep: 0.03, clutch: 0.05, trait: "Potencia de disparo" },
+  { code: "COL", name: "Colombia", primary: 0xfacc15, secondary: 0x1d4ed8, attack: 0.04, keep: 0.04, clutch: 0.03, trait: "Balance total" },
+  { code: "MEX", name: "Mexico", primary: 0x22c55e, secondary: 0xffffff, attack: 0.05, keep: 0.02, clutch: 0.09, trait: "Crece bajo presion" },
+  { code: "USA", name: "Estados Unidos", primary: 0x60a5fa, secondary: 0xef4444, attack: 0.03, keep: 0.08, clutch: 0.03, trait: "Arquero estable" },
+  { code: "FRA", name: "Francia", primary: 0x2563eb, secondary: 0xf8fafc, attack: 0.07, keep: 0.03, clutch: 0.04, trait: "Lectura dificil" },
+  { code: "ESP", name: "Espana", primary: 0xdc2626, secondary: 0xfacc15, attack: 0.06, keep: 0.04, clutch: 0.04, trait: "Colocacion tecnica" },
 ];
-
-const SHOOTER_POWERS = ["COMETA", "ARCO XL"];
-const KEEPER_POWERS = ["AUTOBUS", "AURA", "ORACULO"];
 
 const BACK_CODES = ["P1_6", "P2_6"];
 
-// DO NOT replace existing keys — they match the physical arcade cabinet wiring.
-// To add local testing shortcuts, append extra keys to any array.
 const CABINET_KEYS = {
   P1_U: ["w"],
   P1_D: ["s"],
@@ -280,207 +196,95 @@ function updateDecisionTimer(scene, time) {
     `${phaseLabel} ${playerTag}  TIEMPO: ${seconds}s`,
   );
 
-  let color = "#b8ff8c";
-  if (remainingMs < 1800) {
-    color = "#ff8e8e";
-  } else if (remainingMs < 3200) {
-    color = "#ffd37a";
-  }
-  scene.decisionTimer.text.setColor(color);
+  scene.decisionTimer.text.setColor(
+    remainingMs < 1800 ? "#ff8e8e" : remainingMs < 3200 ? "#ffd37a" : "#b8ff8c",
+  );
 }
 
 function createBackground(scene) {
-  ensureCrowdTexture(scene);
+  const cx = GAME_WIDTH / 2;
+  const cy = GAME_HEIGHT / 2;
+  scene.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x030912);
+  scene.add.rectangle(cx, 92, GAME_WIDTH, 182, 0x08172a, 0.95);
+  scene.add.ellipse(cx, 164, 760, 236, 0x0b1b2d, 0.92);
+  scene.add.rectangle(cx, 170, 760, 76, 0x0f1f32, 0.62);
+  scene.add.rectangle(cx, 206, 760, 52, 0x152436, 0.52);
 
-  scene.add.rectangle(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2,
-    GAME_WIDTH,
-    GAME_HEIGHT,
-    COLORS.bg,
-  );
-
-  scene.add
-    .ellipse(GAME_WIDTH / 2, 158, 732, 268, 0x0e1812, 0.96)
-    .setStrokeStyle(2, 0x1f2d24, 0.45);
-
-  scene.add
-    .image(GAME_WIDTH / 2, 112, "crowd-blur")
-    .setDisplaySize(610, 66)
-    .setAlpha(0.24);
-  const standMid = scene.add
-    .image(GAME_WIDTH / 2, 136, "crowd-blur")
-    .setDisplaySize(684, 98)
-    .setAlpha(0.32);
-  const standTop = scene.add
-    .image(GAME_WIDTH / 2, 168, "crowd-blur")
-    .setDisplaySize(708, 134)
-    .setAlpha(0.45);
-
-  scene.tweens.add({
-    targets: standTop,
-    alpha: 0.53,
-    duration: 1700,
-    yoyo: true,
-    repeat: -1,
-    ease: "Sine.easeInOut",
-  });
-  scene.tweens.add({
-    targets: standMid,
-    alpha: 0.39,
-    duration: 2100,
-    yoyo: true,
-    repeat: -1,
-    ease: "Sine.easeInOut",
-  });
-
-  const lightXs = [144, 284, 516, 656];
-  for (let i = 0; i < lightXs.length; i += 1) {
-    const x = lightXs[i];
-    scene.add.rectangle(x, 92, 4, 44, 0xdde5de, 0.3);
-    scene.add.rectangle(x, 68, 58, 8, 0xf8fff1, 0.6);
-    const glow = scene.add
-      .ellipse(x, 106, 132, 84, 0xf8fff1, 0.08)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    scene.tweens.add({
-      targets: glow,
-      alpha: 0.15,
-      duration: 1200 + i * 210,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+  for (let i = 0; i < 11; i += 1) {
+    const x = 90 + i * 62;
+    scene.add.rectangle(x, 62, 40, 6, 0xffffff, 0.94);
+    scene.add.ellipse(x, 84, 120, 50, 0xffffff, 0.14).setBlendMode(Phaser.BlendModes.ADD);
   }
 
-  scene.add
-    .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 760, 560, COLORS.bgDark, 0.78)
-    .setStrokeStyle(4, COLORS.frame, 0.82);
+  scene.add.triangle(106, 138, 0, 0, 170, 0, 0, 116, 0x0a1726, 0.62);
+  scene.add.triangle(GAME_WIDTH - 106, 138, 0, 0, 170, 0, 170, 116, 0x0a1726, 0.62);
 
-  scene.add
-    .rectangle(
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + 94,
-      684,
-      352,
-      COLORS.turf,
-      0.94,
-    )
-    .setStrokeStyle(2, COLORS.line, 0.45);
-  scene.add
-    .ellipse(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 118, 560, 280, 0xdfffcc, 0.06)
-    .setBlendMode(Phaser.BlendModes.ADD);
-  scene.add.rectangle(92, GAME_HEIGHT / 2 + 90, 112, 350, 0x07110b, 0.42);
-  scene.add.rectangle(
-    GAME_WIDTH - 92,
-    GAME_HEIGHT / 2 + 90,
-    112,
-    350,
-    0x07110b,
-    0.42,
-  );
+  scene.add.rectangle(cx, cy, 760, 560, 0x050e18, 0.74).setStrokeStyle(4, 0x4a6784, 0.86);
+  scene.add.rectangle(cx, cy + 94, 684, 352, 0x173423, 0.95).setStrokeStyle(2, 0xe6f6ef, 0.42);
+  scene.add.ellipse(cx, cy + 82, 464, 110, 0xffffff, 0.08).setBlendMode(Phaser.BlendModes.ADD);
 
-  scene.add
-    .rectangle(GAME_WIDTH / 2, 234, 548, 138, COLORS.turf2, 0.24)
-    .setStrokeStyle(2, COLORS.line, 0.38);
-  scene.add.rectangle(GAME_WIDTH / 2, 158, 314, 18, COLORS.shadow, 0.34);
-
-  const stripeColor = 0x2a7a47;
-  for (let i = 0; i < 8; i += 1) {
-    scene.add.rectangle(
-      140 + i * 74,
-      GAME_HEIGHT / 2 + 94,
-      36,
-      350,
-      stripeColor,
-      i % 2 === 0 ? 0.22 : 0.08,
-    );
+  for (let i = 0; i < 7; i += 1) {
+    scene.add.rectangle(160 + i * 80, cy + 94, 44, 350, 0x214431, i % 2 === 0 ? 0.2 : 0.08);
   }
 
-  const timerBand = scene.add
-    .rectangle(GAME_WIDTH / 2, 22, 432, 30, 0x0b1710, 0.88)
-    .setStrokeStyle(2, 0x3b7c4f, 0.85)
-    .setDepth(40)
-    .setVisible(false);
+  const vpY = cy + 62;
+  const lColor = 0xffffff;
+  scene.add.line(0, 0, cx, vpY, 80, GAME_HEIGHT - 6, lColor, 0.32).setLineWidth(2, 1);
+  scene.add.line(0, 0, cx, vpY, GAME_WIDTH - 80, GAME_HEIGHT - 6, lColor, 0.32).setLineWidth(2, 1);
+  scene.add.line(0, 0, cx, vpY, cx, GAME_HEIGHT - 6, lColor, 0.33).setLineWidth(2, 2);
+  scene.add.circle(cx, vpY, 2, 0xffffff, 0.5);
 
-  const timerText = scene.add
-    .text(GAME_WIDTH / 2, 22, "", {
-      fontFamily: "monospace",
-      fontSize: "17px",
-      color: "#b8ff8c",
-      fontStyle: "bold",
-    })
-    .setOrigin(0.5)
-    .setDepth(41)
-    .setVisible(false);
+  scene.add.ellipse(76, cy, 230, 560, 0x000000, 0.34);
+  scene.add.ellipse(GAME_WIDTH - 76, cy, 230, 560, 0x000000, 0.34);
+  scene.add.rectangle(cx, 42, 760, 94, 0x000000, 0.25);
+  scene.add.rectangle(cx, GAME_HEIGHT - 12, 760, 34, 0x000000, 0.36);
 
-  scene.decisionTimer = {
-    band: timerBand,
-    text: timerText,
-  };
+  const timerBand = scene.add.rectangle(cx, 22, 432, 30, 0x0a1421, 0.9).setStrokeStyle(2, 0x5e7b98, 0.88).setDepth(40).setVisible(false);
+  const timerText = scene.add.text(cx, 22, "", { fontFamily: "monospace", fontSize: "17px", color: "#b8ff8c", fontStyle: "bold" }).setOrigin(0.5).setDepth(41).setVisible(false);
 
+  scene.decisionTimer = { band: timerBand, text: timerText };
   updateDecisionTimer(scene, 0);
-}
-
-function ensureCrowdTexture(scene) {
-  if (scene.textures.exists("crowd-blur")) {
-    return;
-  }
-
-  const w = 360;
-  const h = 120;
-  const g = scene.make.graphics({ add: false });
-
-  g.fillStyle(0x101a12, 1);
-  g.fillRect(0, 0, w, h);
-
-  for (let i = 0; i < 640; i += 1) {
-    const x = (i * 37) % w;
-    const y = (i * 61) % h;
-    let color = 0x5f6f67;
-    if (i % 3 === 0) {
-      color = 0xc4d3c9;
-    } else if (i % 3 === 1) {
-      color = 0x8ea39a;
-    }
-    const alpha = 0.14 + (i % 5) * 0.04;
-    const radius = i % 7 === 0 ? 2 : 1;
-    g.fillStyle(color, alpha);
-    g.fillCircle(x, y, radius);
-  }
-
-  for (let i = 0; i < 14; i += 1) {
-    g.fillStyle(0x000000, 0.06);
-    g.fillRect(0, 8 + i * 8, w, 3);
-  }
-
-  g.generateTexture("crowd-blur", w, h);
-  g.destroy();
 }
 
 function ensureMatchSpriteTextures(scene) {
   if (!scene.textures.exists("keeper-sprite")) {
     const g = scene.make.graphics({ add: false });
-    const w = 52;
+    const w = 62;
     const h = 34;
 
     g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(16, 13, 20, 13, 3);
-    g.fillCircle(26, 8, 5);
-    g.fillRoundedRect(8, 15, 8, 4, 2);
-    g.fillRoundedRect(36, 15, 8, 4, 2);
-    g.fillCircle(8, 17, 3);
-    g.fillCircle(44, 17, 3);
-    g.fillRect(20, 25, 5, 7);
-    g.fillRect(27, 25, 5, 7);
+    const fh = [9, 11, 12, 10];
+    for (let i = 0; i < 4; i++) {
+      g.fillRoundedRect(9 + i * 3, 2, 3, fh[i], 1);
+      g.fillRoundedRect(39 + i * 3, 2, 3, fh[i], 1);
+    }
 
-    g.fillStyle(0x102117, 0.28);
-    g.fillRect(18, 19, 16, 2);
-    g.fillCircle(24, 7, 1);
-    g.fillCircle(28, 7, 1);
+    g.fillRoundedRect(9, 10, 14, 4, 2);
+    g.fillRoundedRect(39, 10, 14, 4, 2);
+    g.fillRoundedRect(9, 12, 14, 12, 4);
+    g.fillRoundedRect(39, 12, 14, 12, 4);
+    g.fillRoundedRect(5, 14, 5, 8, 2);
+    g.fillRoundedRect(53, 14, 5, 8, 2);
+
+    g.fillStyle(0x101010, 1);
+    g.fillRoundedRect(10, 24, 12, 6, 2);
+    g.fillRoundedRect(40, 24, 12, 6, 2);
+
+    g.fillStyle(0xffffff, 0.28);
+    g.fillRect(11, 14, 8, 2);
+    g.fillRect(41, 14, 8, 2);
 
     g.lineStyle(1, 0x0b1b12, 0.7);
-    g.strokeRoundedRect(16, 13, 20, 13, 3);
-    g.strokeCircle(26, 8, 5);
+    for (let i = 0; i < 4; i++) {
+      g.strokeRoundedRect(9 + i * 3, 2, 3, fh[i], 1);
+      g.strokeRoundedRect(39 + i * 3, 2, 3, fh[i], 1);
+    }
+    g.strokeRoundedRect(9, 10, 14, 4, 2);
+    g.strokeRoundedRect(39, 10, 14, 4, 2);
+    g.strokeRoundedRect(9, 12, 14, 12, 4);
+    g.strokeRoundedRect(39, 12, 14, 12, 4);
+    g.strokeRoundedRect(5, 14, 5, 8, 2);
+    g.strokeRoundedRect(53, 14, 5, 8, 2);
 
     g.generateTexture("keeper-sprite", w, h);
     g.destroy();
@@ -488,25 +292,18 @@ function ensureMatchSpriteTextures(scene) {
 
   if (!scene.textures.exists("ball-sprite")) {
     const g = scene.make.graphics({ add: false });
-    const w = 24;
-    const h = 24;
-
     g.fillStyle(0xffffff, 1);
     g.fillCircle(12, 12, 9);
     g.lineStyle(1, 0x203227, 0.8);
     g.strokeCircle(12, 12, 9);
 
     g.fillStyle(0x1a2d20, 0.45);
-    g.fillCircle(12, 12, 3);
-    g.fillCircle(8, 8, 2);
-    g.fillCircle(16, 8, 2);
-    g.fillCircle(9, 16, 2);
-    g.fillCircle(16, 15, 2);
+    [ [12,12,3], [8,8,2], [16,8,2], [9,16,2], [16,15,2] ].forEach(c => g.fillCircle(c[0], c[1], c[2]));
 
     g.fillStyle(0xffffff, 0.24);
     g.fillCircle(9, 9, 2);
 
-    g.generateTexture("ball-sprite", w, h);
+    g.generateTexture("ball-sprite", 24, 24);
     g.destroy();
   }
 }
@@ -559,15 +356,6 @@ function createMenuScreen(scene) {
     })
     .setOrigin(0.5);
 
-  const titleSub = scene.add
-    .text(GAME_WIDTH / 2, 198, "Secret penalties, loud stadium, one champion", {
-      fontFamily: "monospace",
-      fontSize: "12px",
-      color: "#a8c89f",
-      align: "center",
-    })
-    .setOrigin(0.5);
-
   scene.menuScreen = {
     container: c,
     buttons: [],
@@ -603,7 +391,6 @@ function createMenuScreen(scene) {
   c.add(heroGlow);
   c.add(heroBand);
   c.add(titleMain);
-  c.add(titleSub);
   c.add(accentLine);
   c.add(scene.menuScreen.subtitle);
   c.add(cursorLight);
@@ -685,6 +472,8 @@ function showMenu(scene) {
 
 function updateMenuHighlight(scene) {
   const cursor = scene.state.menu.cursor;
+  const count = scene.state.playerCount || 1;
+  const labels = ["TOURNAMENT", `PLAYERS ${count}`];
   for (let i = 0; i < scene.menuScreen.buttons.length; i += 1) {
     const button = scene.menuScreen.buttons[i];
     const active = i === cursor;
@@ -700,6 +489,7 @@ function updateMenuHighlight(scene) {
     button.bg.setScale(active ? 1.02 : 1);
     button.label.setColor(active ? "#0d1f12" : "#f3ffe9");
     button.label.setScale(active ? 1.03 : 1);
+    button.label.setText(active ? `> ${labels[i]} <` : labels[i]);
   }
 
   const selected = scene.menuScreen.buttons[cursor];
@@ -710,7 +500,7 @@ function refreshMenuLabels(scene) {
   const count = Phaser.Math.Clamp(
     scene.state.playerCount || 1,
     1,
-    TEAMS.length,
+    Math.min(8, TEAMS.length),
   );
   scene.state.playerCount = count;
   const labels = ["TOURNAMENT", `PLAYERS ${count}`];
@@ -758,7 +548,9 @@ function handleMenuInput(scene, time) {
       return;
     }
     scene.state.playerCount =
-      scene.state.playerCount >= TEAMS.length ? 1 : scene.state.playerCount + 1;
+      scene.state.playerCount >= Math.min(8, TEAMS.length)
+        ? 1
+        : scene.state.playerCount + 1;
     refreshMenuLabels(scene);
     playSound(scene, "click");
   }
@@ -823,34 +615,36 @@ function createTeamSelectScreen(scene) {
 
   c.add(
     scene.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 620, 430, COLORS.panel, 0.92)
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 742, 430, COLORS.panel, 0.92)
       .setStrokeStyle(2, COLORS.frame, 0.9),
   );
   c.add(title);
   c.add(stepLabel);
 
   for (let i = 0; i < TEAMS.length; i += 1) {
-    const col = i % 4;
-    const row = Math.floor(i / 4);
-    const x = 190 + col * 140;
+    const colCount = 4;
+    const col = i % colCount;
+    const row = Math.floor(i / colCount);
+    const startX = GAME_WIDTH / 2 - ((colCount - 1) * 140) / 2;
+    const x = startX + col * 140;
     const y = 210 + row * 86;
 
     const bg = scene.add
-      .rectangle(x, y, 128, 66, COLORS.panel2, 0.96)
+      .rectangle(x, y, 112, 66, COLORS.panel2, 0.96)
       .setStrokeStyle(2, COLORS.frame, 0.9);
     const code = scene.add
       .text(x, y + 2, TEAMS[i].code, {
         fontFamily: "monospace",
-        fontSize: "22px",
+        fontSize: "20px",
         color: "#f3ffe9",
         fontStyle: "bold",
       })
       .setOrigin(0.5);
-    const flag = createFlagImage(scene, i, x, y - 20, 36, 22);
+    const flag = createFlagImage(scene, i, x, y - 20, 32, 20);
     const name = scene.add
       .text(x, y + 22, TEAMS[i].name, {
         fontFamily: "monospace",
-        fontSize: "11px",
+        fontSize: "10px",
         color: "#8fb18e",
       })
       .setOrigin(0.5);
@@ -862,6 +656,11 @@ function createTeamSelectScreen(scene) {
     c.add(name);
   }
 
+  const cursorBox = scene.add.rectangle(0, 0, 122, 76, 0, 0).setStrokeStyle(3, COLORS.accent, 1);
+  scene.tweens.add({ targets: cursorBox, scaleX: 1.06, scaleY: 1.06, duration: 400, yoyo: true, repeat: -1 });
+  scene.teamScreen.cursorBox = cursorBox;
+  c.add(cursorBox);
+
   c.add(info);
   c.add(message);
   c.add(help);
@@ -872,7 +671,7 @@ function startTeamSelect(scene) {
   const playerCount = Phaser.Math.Clamp(
     scene.state.playerCount || 1,
     1,
-    TEAMS.length,
+    Math.min(8, TEAMS.length),
   );
 
   scene.state.select = {
@@ -938,6 +737,9 @@ function refreshTeamSelectScreen(scene) {
       cell.flag.setAlpha(unavailable ? 0.35 : 1);
     }
   }
+  
+  const activeCell = scene.teamScreen.cells[select.cursor];
+  scene.teamScreen.cursorBox.setPosition(activeCell.bg.x, activeCell.bg.y);
 }
 
 function handleTeamSelectInput(scene, time) {
@@ -953,7 +755,7 @@ function handleTeamSelectInput(scene, time) {
     (axis.x !== select.lastAxisX || axis.y !== select.lastAxisY)
   ) {
     const colCount = 4;
-    const rowCount = 2;
+    const rowCount = Math.ceil(TEAMS.length / colCount);
     let row = Math.floor(select.cursor / colCount);
     let col = select.cursor % colCount;
 
@@ -1080,7 +882,7 @@ function createBracketScreen(scene) {
       .text(
         GAME_WIDTH / 2,
         486,
-        "COMO JUGAR\nMUEVE: PALANCA\nROJA=DELANTERO\nAMARILLA=PORTERO\nB1(U/R): PODER\nB4(J/F): CONFIRMA",
+        "COMO JUGAR\nMUEVE: PALANCA\nROJA=DELANTERO\nAMARILLA=PORTERO\nCOMBOS RANDOM B1-B6",
         {
           fontFamily: "monospace",
           fontSize: "10px",
@@ -1376,14 +1178,6 @@ function createMatchScreen(scene) {
         align: "center",
       })
       .setOrigin(0.5),
-    phaseHint: scene.add
-      .text(GAME_WIDTH / 2, 544, "", {
-        fontFamily: "monospace",
-        fontSize: "12px",
-        color: "#b2c957",
-        align: "center",
-      })
-      .setOrigin(0.5),
     event: scene.add
       .text(GAME_WIDTH / 2, 568, "", {
         fontFamily: "monospace",
@@ -1401,6 +1195,22 @@ function createMatchScreen(scene) {
       })
       .setOrigin(0.5),
   };
+
+  const comboContainer = scene.add.container(GAME_WIDTH / 2, 460);
+  const comboBoxes = [];
+  const comboTexts = [];
+  for (let i = 0; i < COMBO_LENGTH; i++) {
+    const box = scene.add.rectangle((i - 1) * 80, 0, 60, 60, 0x102117, 0.9).setStrokeStyle(2, COLORS.frame);
+    const txt = scene.add.text((i - 1) * 80, 0, "", {
+      fontFamily: "monospace", fontSize: "28px", color: "#f3ffe9", fontStyle: "bold"
+    }).setOrigin(0.5);
+    comboBoxes.push(box);
+    comboTexts.push(txt);
+    comboContainer.add([box, txt]);
+  }
+  scene.matchScreen.comboContainer = comboContainer;
+  scene.matchScreen.comboBoxes = comboBoxes;
+  scene.matchScreen.comboTexts = comboTexts;
 
   for (let i = -2; i <= 2; i += 1) {
     const netV = scene.add.rectangle(
@@ -1447,9 +1257,9 @@ function createMatchScreen(scene) {
   c.add(scene.matchScreen.shotsA);
   c.add(scene.matchScreen.shotsB);
   c.add(scene.matchScreen.turn);
+  c.add(scene.matchScreen.comboContainer);
   c.add(scene.matchScreen.secretHint);
   c.add(scene.matchScreen.prompt);
-  c.add(scene.matchScreen.phaseHint);
   c.add(scene.matchScreen.event);
 
   c.setVisible(false);
@@ -1500,31 +1310,39 @@ function setupNextAttempt(scene, time) {
 
   const shooterSide = match.turn % 2 === 0 ? "A" : "B";
   const keeperSide = shooterSide === "A" ? "B" : "A";
-  let weather = "clear";
-  let windX = 0;
-  const weatherRoll = Math.random();
-  if (weatherRoll < 0.24) {
-    weather = "wind";
-    windX =
-      (Math.random() < 0.5 ? -1 : 1) * Phaser.Math.FloatBetween(0.6, 1.15);
-  } else if (weatherRoll < 0.46) {
-    weather = "rain";
-  }
 
   match.pending = {
     shooterSide,
     keeperSide,
-    stage: "shooter",
+    stage: "shooter_aim",
     activeX: 0,
     activeY: AIM_Y_CENTER,
-    shooter: { x: 0, y: AIM_Y_CENTER, power: 0, locked: false },
-    keeper: { x: 0, y: AIM_Y_CENTER, power: 1, locked: false },
+    moveAxisX: 0,
+    moveAxisY: 0,
+    moveRepeatAt: 0,
+    shooter: {
+      x: 0,
+      y: AIM_Y_CENTER,
+      locked: false,
+      meter: 0.08,
+      combo: buildRandomCombo(SHOOTER_COMBO_POOL, COMBO_LENGTH),
+      comboStep: 0,
+      comboPool: SHOOTER_COMBO_POOL,
+    },
+    keeper: {
+      x: 0,
+      y: AIM_Y_CENTER,
+      locked: false,
+      meter: 0.62,
+      combo: buildRandomCombo(KEEPER_COMBO_POOL, COMBO_LENGTH),
+      comboStep: 0,
+      comboPool: KEEPER_COMBO_POOL,
+    },
+    meterUpdatedAt: time,
     revealAt: 0,
     stageStartedAt: time,
-    lockDeadline: time + DECISION_TIME_MS,
+    lockDeadline: time + 15000,
     cpuReadyAt: time + Phaser.Math.Between(300, 680),
-    weather,
-    windX,
   };
 
   match.resolving = false;
@@ -1546,7 +1364,6 @@ function setupNextAttempt(scene, time) {
     .setAlpha(0.35);
   scene.matchScreen.reticle.setVisible(true);
   scene.matchScreen.event.setText("");
-  scene.matchScreen.phaseHint.setText("");
   scene.matchScreen.secretHint.setText("");
   scene.matchScreen.crowdFlash.setAlpha(0);
   scene.matchScreen.goalBurst.setAlpha(0).setScale(1);
@@ -1568,7 +1385,6 @@ function updateMatchHud(scene) {
   const shooterSide = match.pending.shooterSide;
   const shooterTeam = getTeamIndexBySide(match, shooterSide);
   const shooterName = teamCode(shooterTeam);
-  const weatherTag = weatherLabel(match.pending);
 
   scene.matchScreen.title.setText(`${match.roundName} - SHOOTER POV`);
   scene.matchScreen.leftFlag.setTexture(flagTextureKey(match.teamA));
@@ -1593,39 +1409,52 @@ function updateMatchHud(scene) {
   );
 
   if (scene.state.phase === "matchInput") {
-    const isShooterStage = match.pending.stage === "shooter";
+    const isShooterStage = match.pending.stage.startsWith("shooter");
+    const isComboStage = match.pending.stage.endsWith("combo");
     const activeSide = isShooterStage
       ? match.pending.shooterSide
       : match.pending.keeperSide;
     const activeTag = getSidePlayerTag(match, activeSide);
     const activeControl = activeSide === "A" ? match.controlA : match.controlB;
-
-    scene.matchScreen.prompt.setText(
-      `${activeTag} ${isShooterStage ? "DELANTERO" : "PORTERO"}: APUNTA Y BLOQUEA`,
-    );
-
     const choice = isShooterStage
       ? match.pending.shooter
       : match.pending.keeper;
-    const powerList = isShooterStage ? SHOOTER_POWERS : KEEPER_POWERS;
-    const powerIndex = Phaser.Math.Clamp(
-      choice.power || 0,
-      0,
-      powerList.length - 1,
-    );
-    const powerValue = powerList[powerIndex];
-    const controlsHint =
-      activeControl === "human1"
-        ? "U CAMBIA  J CONFIRMA"
-        : activeControl === "human2"
-          ? "R CAMBIA  F CONFIRMA"
-          : "U/R CAMBIA  J/F CONFIRMA";
+    const meterValue = Phaser.Math.Clamp(choice.meter || 0, 0, 1);
 
-    scene.matchScreen.phaseHint.setText(
-      activeControl === "cpu"
-        ? `CPU ELIGIENDO...  ${weatherTag}`
-        : `PODER ${powerValue}  ${weatherTag}  ${controlsHint}`,
-    );
+    if (isComboStage) {
+      scene.matchScreen.prompt.setText(
+        activeControl === "cpu" ? `${activeTag} ELIGIENDO...` : `${activeTag} ¡INGRESA EL COMBO RAPIDO!`
+      );
+      scene.matchScreen.comboContainer.setVisible(activeControl !== "cpu");
+      
+      for(let i=0; i<COMBO_LENGTH; i++) {
+        const box = scene.matchScreen.comboBoxes[i];
+        const txt = scene.matchScreen.comboTexts[i];
+        if (i < choice.comboStep) {
+          box.setFillStyle(0x22c55e, 1);
+          box.setStrokeStyle(2, 0xffffff);
+          txt.setColor("#000000");
+        } else {
+          box.setFillStyle(0x102117, 0.9);
+          box.setStrokeStyle(2, COLORS.frame);
+          txt.setColor("#f3ffe9");
+        }
+        txt.setText(`B${choice.combo[i]}`);
+      }
+
+      const minScale = 1;
+      const maxScale = 5;
+      scene.matchScreen.reticleRing.setScale(minScale + (maxScale - minScale) * meterValue);
+      scene.matchScreen.reticleRing.setAlpha(1);
+    } else {
+      scene.matchScreen.prompt.setText(
+        activeControl === "cpu" ? `${activeTag} PENSANDO...` : `${activeTag} ELIGE DIRECCION Y PRESIONA START/B1`
+      );
+      scene.matchScreen.comboContainer.setVisible(false);
+      scene.matchScreen.reticleRing.setScale(1);
+      scene.matchScreen.reticleRing.setAlpha(0.6);
+    }
+
     setReticleRoleColor(scene, isShooterStage);
 
     scene.matchScreen.secretHint.setText(
@@ -1635,8 +1464,8 @@ function updateMatchHud(scene) {
     );
   } else if (scene.state.phase === "matchReveal") {
     scene.matchScreen.prompt.setText("REVEALING...");
-    scene.matchScreen.phaseHint.setText(weatherTag);
     scene.matchScreen.secretHint.setText("");
+    scene.matchScreen.comboContainer.setVisible(false);
   }
 }
 
@@ -1663,13 +1492,7 @@ function handleMatchInput(scene, time) {
     return;
   }
 
-  if (consumeAnyPressedControl(scene, BACK_CODES)) {
-    playSound(scene, "click");
-    showMenu(scene);
-    return;
-  }
-
-  const isShooterStage = match.pending.stage === "shooter";
+  const isShooterStage = match.pending.stage.startsWith("shooter");
   const activeSide = isShooterStage
     ? match.pending.shooterSide
     : match.pending.keeperSide;
@@ -1677,6 +1500,9 @@ function handleMatchInput(scene, time) {
   handleSideChoice(scene, match, activeSide, isShooterStage, time);
 
   const pending = match.pending;
+  const isCpu = activeSide === "A" ? match.controlA === "cpu" : match.controlB === "cpu";
+  scene.matchScreen.reticle.setVisible(isCpu ? false : true);
+
   if (time >= pending.lockDeadline) {
     lockCurrentStage(scene, match, time);
     playSound(scene, "click");
@@ -1691,20 +1517,25 @@ function lockCurrentStage(scene, match, time) {
     return;
   }
 
-  if (pending.stage === "shooter") {
+  if (pending.stage === "shooter_aim" || pending.stage === "shooter_combo") {
     if (!pending.shooter.locked) {
       pending.shooter.x = pending.activeX;
       pending.shooter.y = pending.activeY;
       pending.shooter.locked = true;
     }
 
-    pending.stage = "keeper";
+    pending.stage = "keeper_aim";
     pending.stageStartedAt = time;
-    pending.lockDeadline = time + DECISION_TIME_MS;
+    pending.lockDeadline = time + 15000;
     pending.cpuReadyAt = time + Phaser.Math.Between(320, 760);
+    pending.moveAxisX = 0;
+    pending.moveAxisY = 0;
+    pending.moveRepeatAt = 0;
+    pending.meterUpdatedAt = time;
 
     setAimCursor(scene, match, 0, AIM_Y_CENTER);
     setReticleRoleColor(scene, false);
+    scene.matchScreen.reticle.setVisible(match.keeperSide === "A" ? match.controlA !== "cpu" : match.controlB !== "cpu");
     clearPressed(scene);
     return;
   }
@@ -1718,8 +1549,8 @@ function lockCurrentStage(scene, match, time) {
   pending.revealAt = time + 360;
   scene.state.phase = "matchReveal";
   scene.matchScreen.reticle.setVisible(false);
+  scene.matchScreen.comboContainer.setVisible(false);
   scene.matchScreen.prompt.setText("REVEALING...");
-  scene.matchScreen.phaseHint.setText("");
   scene.matchScreen.secretHint.setText("");
 }
 
@@ -1727,85 +1558,86 @@ function handleSideChoice(scene, match, side, isShooterStage, time) {
   const pending = match.pending;
   const choice = isShooterStage ? pending.shooter : pending.keeper;
   const control = side === "A" ? match.controlA : match.controlB;
+  const isAimStage = pending.stage === "shooter_aim" || pending.stage === "keeper_aim";
+  const isComboStage = pending.stage === "shooter_combo" || pending.stage === "keeper_combo";
 
   if (control === "cpu") {
-    if (time < pending.cpuReadyAt) {
-      return;
+    if (time < pending.cpuReadyAt) return;
+    
+    if (isAimStage) {
+      applyCpuAim(match, side, isShooterStage);
+      choice.x = pending.activeX;
+      choice.y = pending.activeY;
+      pending.stage = isShooterStage ? "shooter_combo" : "keeper_combo";
+      pending.cpuReadyAt = time + Phaser.Math.Between(300, 600);
+    } else if (isComboStage) {
+      choice.comboStep = choice.combo.length;
+      choice.locked = true;
+      choice.meter = Phaser.Math.FloatBetween(0.2, 0.8);
+      lockCurrentStage(scene, match, time);
     }
-    applyCpuChoice(match, side, isShooterStage);
-    choice.locked = true;
-    lockCurrentStage(scene, match, time);
     return;
   }
 
-  let moveLeft = ["P1_L", "P2_L"];
-  let moveRight = ["P1_R", "P2_R"];
-  let moveUp = ["P1_U", "P2_U"];
-  let moveDown = ["P1_D", "P2_D"];
-  let powerCycle = ["P1_1", "P2_1"];
-  let confirm = ["P1_4", "P2_4"];
+  if (isAimStage) {
+    let axisX = getHorizontalMenuAxis(scene.controls);
+    let axisY = getVerticalMenuAxis(scene.controls);
 
-  if (control === "human1") {
-    moveLeft = ["P1_L"];
-    moveRight = ["P1_R"];
-    moveUp = ["P1_U"];
-    moveDown = ["P1_D"];
-    powerCycle = ["P1_1"];
-    confirm = ["P1_4"];
-  } else if (control === "human2") {
-    moveLeft = ["P2_L"];
-    moveRight = ["P2_R"];
-    moveUp = ["P2_U"];
-    moveDown = ["P2_D"];
-    powerCycle = ["P2_1"];
-    confirm = ["P2_4"];
-  }
+    if (control === "human1") {
+      const axis = getPlayerAxis(scene.controls, "P1");
+      axisX = axis.x;
+      axisY = axis.y;
+    } else if (control === "human2") {
+      const axis = getPlayerAxis(scene.controls, "P2");
+      axisX = axis.x;
+      axisY = axis.y;
+    }
 
-  let moved = false;
+    if (axisX !== 0 || axisY !== 0) {
+      const sameAxis = axisX === pending.moveAxisX && axisY === pending.moveAxisY;
+      if (!sameAxis || time >= pending.moveRepeatAt) {
+        pending.activeX += axisX * AIM_STEP;
+        pending.activeY += axisY * AIM_STEP;
+        pending.activeX = clampAim(pending.activeX, AIM_X_MIN, AIM_X_MAX);
+        pending.activeY = clampAim(pending.activeY, AIM_Y_MIN, AIM_Y_MAX);
+        syncReticle(scene, pending.activeX, pending.activeY);
+        playSound(scene, "click");
+        pending.moveAxisX = axisX;
+        pending.moveAxisY = axisY;
+        pending.moveRepeatAt = time + (sameAxis ? 56 : 136);
+      }
+    } else {
+      pending.moveAxisX = 0;
+      pending.moveAxisY = 0;
+      pending.moveRepeatAt = 0;
+    }
 
-  if (consumeAnyPressedControl(scene, moveLeft)) {
-    pending.activeX -= 1;
-    moved = true;
-  }
-  if (consumeAnyPressedControl(scene, moveRight)) {
-    pending.activeX += 1;
-    moved = true;
-  }
-  if (consumeAnyPressedControl(scene, moveUp)) {
-    pending.activeY -= 1;
-    moved = true;
-  }
-  if (consumeAnyPressedControl(scene, moveDown)) {
-    pending.activeY += 1;
-    moved = true;
-  }
+    const confirmCodes = control === "human1" 
+      ? ["P1_1", "START1"] 
+      : (control === "human2" ? ["P2_1", "START2"] : ["P1_1", "P2_1", "START1", "START2"]);
 
-  if (moved) {
-    setAimCursor(scene, match, pending.activeX, pending.activeY);
-    playSound(scene, "click");
-  }
+    if (consumeAnyPressedControl(scene, confirmCodes)) {
+      playSound(scene, "select");
+      pending.stage = isShooterStage ? "shooter_combo" : "keeper_combo";
+      pending.meterUpdatedAt = time;
+      pending.lockDeadline = time + DECISION_TIME_MS;
+      choice.meter = isShooterStage ? 0.08 : 0.62;
+    }
+  } else if (isComboStage) {
+    updateChoiceMeter(pending, choice, isShooterStage, time);
 
-  if (consumeAnyPressedControl(scene, powerCycle)) {
-    const powerCount = isShooterStage
-      ? SHOOTER_POWERS.length
-      : KEEPER_POWERS.length;
-    choice.power = Phaser.Math.Wrap((choice.power || 0) + 1, 0, powerCount);
-    playSound(scene, "click");
-  }
-
-  if (consumeAnyPressedControl(scene, confirm)) {
-    choice.x = pending.activeX;
-    choice.y = pending.activeY;
-    choice.locked = true;
-    playSound(scene, "select");
-    lockCurrentStage(scene, match, time);
+    if (consumeComboProgress(scene, control, choice)) {
+      choice.x = pending.activeX;
+      choice.y = pending.activeY;
+      choice.locked = true;
+      playSound(scene, "select");
+      lockCurrentStage(scene, match, time);
+    }
   }
 }
 
-function applyCpuChoice(match, side, isShooter) {
+function applyCpuAim(match, side, isShooter) {
   const pending = match.pending;
-  const choice = isShooter ? pending.shooter : pending.keeper;
-
   const teamIdx = getTeamIndexBySide(match, side);
   const enemySide = side === "A" ? "B" : "A";
   const enemyTeamIdx = getTeamIndexBySide(match, enemySide);
@@ -1813,21 +1645,20 @@ function applyCpuChoice(match, side, isShooter) {
   const enemyHist = enemySide === "A" ? match.historyA : match.historyB;
 
   if (isShooter) {
-    let x = Phaser.Math.Between(AIM_X_MIN, AIM_X_MAX);
-    let y = Phaser.Math.Between(AIM_Y_MIN, AIM_Y_MAX);
+    let x = randomAimValue(AIM_X_MIN, AIM_X_MAX);
+    let y = randomAimValue(AIM_Y_MIN, AIM_Y_MAX);
     if (isPressureKick(match) && Math.random() < 0.45) {
       y = AIM_Y_CENTER;
     }
     if (team.attack > 0.07 && Math.random() < 0.35) {
       x = Math.random() < 0.5 ? AIM_X_MIN : AIM_X_MAX;
-      y = Phaser.Math.Between(AIM_Y_MIN, Math.min(AIM_Y_CENTER, AIM_Y_MAX));
+      y = randomAimValue(AIM_Y_MIN, Math.min(AIM_Y_CENTER, AIM_Y_MAX));
     }
-    choice.x = x;
-    choice.y = y;
-    choice.power = Math.random() < (isPressureKick(match) ? 0.5 : 0.38) ? 0 : 1;
+    pending.activeX = x;
+    pending.activeY = y;
   } else {
-    let guessX = Phaser.Math.Between(AIM_X_MIN, AIM_X_MAX);
-    let guessY = Phaser.Math.Between(AIM_Y_MIN, AIM_Y_MAX);
+    let guessX = randomAimValue(AIM_X_MIN, AIM_X_MAX);
+    let guessY = randomAimValue(AIM_Y_MIN, AIM_Y_MAX);
     if (enemyHist.length >= 2) {
       const last = enemyHist[enemyHist.length - 1];
       const prev = enemyHist[enemyHist.length - 2];
@@ -1845,10 +1676,50 @@ function applyCpuChoice(match, side, isShooter) {
     if (TEAMS[enemyTeamIdx].attack > 0.07 && Math.random() < 0.22) {
       guessX = Math.random() < 0.5 ? AIM_X_MIN : AIM_X_MAX;
     }
-    choice.x = guessX;
-    choice.y = guessY;
-    choice.power = Math.random() < 0.36 ? 0 : Math.random() < 0.7 ? 1 : 2;
+    pending.activeX = guessX;
+    pending.activeY = guessY;
   }
+}
+
+function buildRandomCombo(pool, length) {
+  const bg = shuffle(pool);
+  return Array.from({length}, (_, i) => bg[i % bg.length]);
+}
+
+function comboButtonCodes(control, num) {
+  const s = String(num);
+  if (control === "human1") return [`P1_${s}`];
+  if (control === "human2") return [`P2_${s}`];
+  return [`P1_${s}`, `P2_${s}`];
+}
+
+function updateChoiceMeter(pending, choice, isShooterStage, time) {
+  const lastTick = pending.meterUpdatedAt || time;
+  const dt = Phaser.Math.Clamp(time - lastTick, 0, 80);
+  pending.meterUpdatedAt = time;
+  if (dt <= 0) {
+    return;
+  }
+
+  const rate = isShooterStage ? SHOOTER_BAR_RATE : -KEEPER_BAR_RATE;
+  choice.meter = Phaser.Math.Clamp((choice.meter || 0) + dt * rate, 0, 1);
+}
+
+function consumeComboProgress(scene, control, choice) {
+  const exp = choice.combo[choice.comboStep];
+  if (typeof exp !== "number") return true;
+
+  const prsd = choice.comboPool.find(c => consumeAnyPressedControl(scene, comboButtonCodes(control, c)));
+  if (!prsd) return false;
+
+  if (prsd === exp) {
+    playSound(scene, "click");
+    return ++choice.comboStep >= choice.combo.length;
+  }
+  
+  choice.comboStep = 0;
+  playSound(scene, "miss");
+  return false;
 }
 
 function setAimCursor(scene, match, x, y) {
@@ -1856,9 +1727,20 @@ function setAimCursor(scene, match, x, y) {
     return;
   }
 
-  match.pending.activeX = Phaser.Math.Clamp(x, AIM_X_MIN, AIM_X_MAX);
-  match.pending.activeY = Phaser.Math.Clamp(y, AIM_Y_MIN, AIM_Y_MAX);
+  match.pending.activeX = clampAim(x, AIM_X_MIN, AIM_X_MAX);
+  match.pending.activeY = clampAim(y, AIM_Y_MIN, AIM_Y_MAX);
   syncReticle(scene, match.pending.activeX, match.pending.activeY);
+}
+
+function clampAim(value, min, max) {
+  const snapped = Math.round(value / AIM_STEP) * AIM_STEP;
+  return Phaser.Math.Clamp(snapped, min, max);
+}
+
+function randomAimValue(min, max) {
+  const f = Math.ceil(min / AIM_STEP);
+  const l = Math.floor(max / AIM_STEP);
+  return (l < f) ? clampAim(min, min, max) : Phaser.Math.Between(f, l) * AIM_STEP;
 }
 
 function syncReticle(scene, x, y) {
@@ -1899,16 +1781,6 @@ function getSidePlayerTag(match, side) {
   return control === "human1" ? "P1" : "P2";
 }
 
-function weatherLabel(pending) {
-  if (!pending) {
-    return "CALMO";
-  }
-  if (pending.weather === "wind") {
-    return pending.windX > 0 ? "VIENTO >" : "VIENTO <";
-  }
-  return pending.weather === "rain" ? "LLUVIA" : "CALMO";
-}
-
 function handleMatchReveal(scene, time) {
   const match = scene.state.match;
   if (!match || !match.pending || match.resolving) {
@@ -1935,47 +1807,20 @@ function resolvePenalty(match) {
   const keeperTeam = TEAMS[getTeamIndexBySide(match, keeperSide)];
   const shot = pending.shooter;
   const keep = pending.keeper;
-  const weather = pending.weather || "clear";
-  const windX = weather === "wind" ? pending.windX || 0 : 0;
-  const shotX = Phaser.Math.Clamp(shot.x + windX, AIM_X_MIN, AIM_X_MAX);
+  const shotX = shot.x;
   const shotY = shot.y;
-  const rain = weather === "rain";
-  const shooterPower = Phaser.Math.Clamp(
-    shot.power || 0,
-    0,
-    SHOOTER_POWERS.length - 1,
-  );
-  const keeperPower = Phaser.Math.Clamp(
-    keep.power || 0,
-    0,
-    KEEPER_POWERS.length - 1,
-  );
-
-  const fireShot = shooterPower === 0;
-  const goalXL = shooterPower === 1;
-  const busWall = keeperPower === 0;
-  const auraSave = keeperPower === 1;
-  const oracleSave = keeperPower === 2;
-
-  let keepX = keep.x;
-  const oracleShift =
-    oracleSave &&
-    shotX !== 0 &&
-    Math.sign(shotX) !== Math.sign(keepX) &&
-    Math.random() < 0.56;
-  if (oracleShift) {
-    keepX = Math.sign(shotX) * Math.max(1, Math.abs(keepX));
-  }
+  const keepX = keep.x;
+  const shotMeter = Phaser.Math.Clamp(shot.meter || 0.5, 0, 1);
+  const keepMeter = Phaser.Math.Clamp(keep.meter || 0.5, 0, 1);
 
   let goalChance = 0.69;
   goalChance += shooterTeam.attack * 0.55;
   goalChance -= keeperTeam.keep * 0.55;
+  goalChance += (shotMeter - 0.5) * 0.24;
 
   let missChance = 0.06;
-
-  if (rain) {
-    goalChance -= 0.05;
-    missChance += 0.08;
+  if (shotMeter > 0.82) {
+    missChance += (shotMeter - 0.82) * 0.2;
   }
 
   const dx = shotX - keepX;
@@ -1998,18 +1843,7 @@ function resolvePenalty(match) {
   } else if (dist < 2.2 && keeperRead) {
     savePressure += 0.08;
   }
-
-  if (busWall && wideShot) {
-    savePressure += directionMatch ? (highShot || lowShot ? 0.32 : 0.24) : 0.1;
-  } else if (busWall) {
-    savePressure += 0.12;
-  }
-  if (auraSave) {
-    savePressure += dist < 1.2 ? 0.24 : dist < 2 ? 0.12 : 0.04;
-  }
-  if (oracleSave) {
-    savePressure += directionMatch ? 0.18 : oracleShift ? 0.12 : 0;
-  }
+  savePressure += (keepMeter - 0.5) * 0.28;
 
   if (!directionMatch) {
     goalChance += 0.01;
@@ -2027,22 +1861,7 @@ function resolvePenalty(match) {
     goalChance += 0.04;
   }
 
-  if (fireShot) {
-    goalChance += 0.12;
-    missChance += 0.04;
-  }
-  if (goalXL) {
-    goalChance += 0.07;
-    missChance -= 0.02;
-  }
-
   let postChance = 0.02;
-  if (goalXL) {
-    postChance -= 0.01;
-  }
-  if (busWall) {
-    postChance += 0.01;
-  }
   let event = "";
 
   if (isPressureKick(match) && Math.random() < 0.16) {
@@ -2090,26 +1909,6 @@ function resolvePenalty(match) {
     goalValue = 0;
   }
 
-  if (fireShot && result === "save") {
-    result = "goal";
-    goalValue = Math.max(goalValue, 1);
-    event = event || "COMETA IMPARABLE";
-  }
-
-  if (!event) {
-    if (fireShot) {
-      event = "COMETA EN LLAMAS";
-    } else if (goalXL) {
-      event = "ARCO XL";
-    } else if (busWall) {
-      event = "AUTOBUS DEFENSIVO";
-    } else if (auraSave) {
-      event = "AURA DE ATAJADA";
-    } else if (oracleSave) {
-      event = "ORACULO ACTIVO";
-    }
-  }
-
   let postSign = shotX >= 0 ? 1 : -1;
   if (shotX === 0) {
     postSign = Math.random() < 0.5 ? -1 : 1;
@@ -2119,7 +1918,7 @@ function resolvePenalty(match) {
   if (result === "miss" && missVisual === "default") {
     if (wideShot || Math.abs(shotX) >= 2 || lowShot) {
       missVisual = "wide";
-    } else if (highShot || (fireShot && Math.random() < 0.4)) {
+    } else if (highShot) {
       missVisual = "over";
     } else {
       missVisual = Math.random() < 0.6 ? "wide" : "over";
@@ -2144,13 +1943,11 @@ function resolvePenalty(match) {
     shotY,
     keepX,
     keepY: keep.y,
-    shooterPower,
-    keeperPower,
+    shotMeter,
+    keepMeter,
     result,
     goal: result === "goal" || result === "postIn",
     goalValue,
-    weather,
-    windX,
     event,
     keeperRead,
     postSign,
@@ -2178,9 +1975,9 @@ function animateOutcome(scene, match, outcome, onDone) {
   const keeperAngle = keeperDir * 16 + keeperYBias;
   const keeperScaleX = keeperDir === 0 ? 1 : 1.14;
   const keeperScaleY = keeperDir === 0 ? 1 : 0.9;
-  const ballSpin = outcome.shooterPower === 0 ? 700 : 430;
+  const ballSpin = 430 + outcome.shotMeter * 240;
   const ballScale =
-    outcome.result === "save" ? 0.88 : outcome.shooterPower === 0 ? 0.68 : 0.72;
+    outcome.result === "save" ? 0.88 : 0.77 - outcome.shotMeter * 0.08;
   const postX = GAME_WIDTH / 2 + (outcome.postSign || 1) * 164;
   const postY = Phaser.Math.Clamp(targetY, 136, 236);
   const saveCatchX = keeperX;
@@ -2208,6 +2005,16 @@ function animateOutcome(scene, match, outcome, onDone) {
     ballY = targetY - 12;
   }
 
+  let trailX = targetX;
+  let trailY = ballY;
+  if (outcome.result === "save") {
+    trailX = saveCatchX;
+    trailY = saveCatchY;
+  } else if (outcome.result === "postOut" || outcome.result === "postIn") {
+    trailX = postX;
+    trailY = postY;
+  }
+
   scene.tweens.killTweensOf(ball);
   scene.tweens.killTweensOf(keeper);
   scene.tweens.killTweensOf(keeperShadow);
@@ -2215,93 +2022,19 @@ function animateOutcome(scene, match, outcome, onDone) {
   scene.tweens.killTweensOf(scene.matchScreen.goalBurst);
   scene.tweens.killTweensOf(scene.matchScreen.reticle);
 
-  if (outcome.shooterPower === 1) {
-    scene.tweens.add({
-      targets: [scene.matchScreen.goalBack, scene.matchScreen.goalFrame],
-      scaleX: 1.08,
-      duration: 120,
-      yoyo: true,
-      repeat: 1,
-      ease: "Sine.easeOut",
-    });
-  }
-
-  if (outcome.keeperPower === 1) {
-    const aura = scene.add
-      .ellipse(keeperX, keeperY, 128, 64, 0x7ec4ff, 0.18)
-      .setStrokeStyle(2, 0xb9e6ff, 0.8)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    scene.matchScreen.crowdFx.add(aura);
-    scene.tweens.add({
-      targets: aura,
-      scaleX: 1.3,
-      scaleY: 1.18,
-      alpha: 0,
-      duration: 260,
-      ease: "Sine.easeOut",
-      onComplete: () => {
-        aura.destroy();
-      },
-    });
-  } else if (outcome.keeperPower === 0) {
-    const c = TEAMS[getTeamIndexBySide(match, outcome.keeperSide)].primary;
-    for (let i = -1; i <= 1; i += 2) {
-      const wall = scene.add.rectangle(
-        GAME_WIDTH / 2 + i * 118,
-        190,
-        18,
-        88,
-        c,
-        0.78,
-      );
-      scene.matchScreen.crowdFx.add(wall);
-      scene.tweens.add({
-        targets: wall,
-        alpha: 0,
-        y: wall.y + 18,
-        duration: 260,
-        ease: "Sine.easeOut",
-        onComplete: () => {
-          wall.destroy();
-        },
-      });
-    }
-  } else if (outcome.keeperPower === 2) {
-    const beam = scene.add
-      .rectangle(keeperX, 186, 12, 108, 0xe8ff6a, 0.2)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    scene.matchScreen.crowdFx.add(beam);
-    scene.tweens.add({
-      targets: beam,
-      alpha: 0,
-      scaleX: 1.8,
-      duration: 220,
-      ease: "Sine.easeOut",
-      onComplete: () => {
-        beam.destroy();
-      },
-    });
-  }
-
-  if (outcome.shooterPower === 0) {
-    const flame = scene.add
-      .ellipse(GAME_WIDTH / 2, 516, 26, 14, 0xff8a2c, 0.52)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    scene.matchScreen.crowdFx.add(flame);
-    scene.tweens.add({
-      targets: flame,
-      x: targetX,
-      y: ballY,
-      scaleX: 2.3,
-      scaleY: 1.2,
-      alpha: 0,
-      duration: 300,
-      ease: "Cubic.easeOut",
-      onComplete: () => {
-        flame.destroy();
-      },
-    });
-  }
+  const trail = scene.add
+    .line(0, 0, GAME_WIDTH / 2, 516, trailX, trailY, 0xffffff, 0.55)
+    .setLineWidth(4, 1.5);
+  scene.matchScreen.crowdFx.add(trail);
+  scene.tweens.add({
+    targets: trail,
+    alpha: 0,
+    duration: 300,
+    ease: "Sine.easeOut",
+    onComplete: () => {
+      trail.destroy();
+    },
+  });
 
   const finalizeOutcome = () => {
     if (outcome.result === "goal" || outcome.result === "postIn") {
@@ -2317,16 +2050,7 @@ function animateOutcome(scene, match, outcome, onDone) {
     }
 
     scene.matchScreen.prompt.setText(outcome.text);
-    scene.matchScreen.phaseHint.setText("");
-    const climateEvent =
-      outcome.weather === "wind"
-        ? outcome.windX > 0
-          ? "VIENTO A DERECHA"
-          : "VIENTO A IZQUIERDA"
-        : outcome.weather === "rain"
-          ? "LLUVIA"
-          : "";
-    scene.matchScreen.event.setText(outcome.event || climateEvent);
+    scene.matchScreen.event.setText(outcome.event || "");
 
     if (outcome.result === "goal" || outcome.result === "postIn") {
       playSound(scene, "goal");
@@ -2665,67 +2389,32 @@ function createFinalScreen(scene) {
   const winnerFx = scene.add.container(0, 0).setDepth(2);
 
   scene.finalScreen = {
-    container: c,
-    winnerGlow,
-    winnerFlag,
-    winnerFx,
-    title: scene.add
-      .text(GAME_WIDTH / 2, 150, "", {
-        fontFamily: "monospace",
-        fontSize: "40px",
-        color: "#e8ff6a",
-        fontStyle: "bold",
-        align: "center",
-      })
-      .setOrigin(0.5),
-    subtitle: scene.add
-      .text(GAME_WIDTH / 2, 206, "", {
-        fontFamily: "monospace",
-        fontSize: "18px",
-        color: "#f3ffe9",
-        align: "center",
-      })
-      .setOrigin(0.5),
-    body: scene.add
-      .text(GAME_WIDTH / 2, 252, "", {
-        fontFamily: "monospace",
-        fontSize: "14px",
-        color: "#8fb18e",
-        align: "center",
-        lineSpacing: 6,
-      })
-      .setOrigin(0.5, 0),
+    container: c, winnerGlow, winnerFlag, winnerFx,
+    title: scene.add.text(GAME_WIDTH / 2, 150, "", { fontFamily: "monospace", fontSize: "40px", color: "#e8ff6a", fontStyle: "bold", align: "center" }).setOrigin(0.5),
+    subtitle: scene.add.text(GAME_WIDTH / 2, 206, "", { fontFamily: "monospace", fontSize: "18px", color: "#f3ffe9", align: "center" }).setOrigin(0.5),
+    body: scene.add.text(GAME_WIDTH / 2, 252, "", { fontFamily: "monospace", fontSize: "14px", color: "#8fb18e", align: "center", lineSpacing: 6 }).setOrigin(0.5, 0),
     buttons: [],
   };
 
-  c.add(
-    scene.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 620, 420, COLORS.panel, 0.95)
-      .setStrokeStyle(2, COLORS.frame, 0.95),
-  );
-  c.add(winnerGlow);
-  c.add(winnerFlag);
-  c.add(winnerFx);
-  c.add(scene.finalScreen.title);
-  c.add(scene.finalScreen.subtitle);
-  c.add(scene.finalScreen.body);
+  const panel = scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 620, 420, COLORS.panel, 0.95).setStrokeStyle(2, COLORS.frame, 0.95);
+  c.add(panel);
+  
+  const trophy = scene.add.graphics();
+  trophy.fillStyle(0xffd700, 1).fillRoundedRect(-20, -30, 40, 35, 4).fillRect(-6, 5, 12, 20).fillRect(-20, 25, 40, 10);
+  trophy.lineStyle(4, 0xffd700, 1).strokeCircle(-24, -15, 14).strokeCircle(24, -15, 14);
+  trophy.setPosition(GAME_WIDTH / 2, 100).setVisible(false);
+  c.add(trophy);
+
+  scene.finalScreen.panel = panel;
+  scene.finalScreen.trophy = trophy;
+  c.add([winnerGlow, winnerFlag, winnerFx, scene.finalScreen.title, scene.finalScreen.subtitle, scene.finalScreen.body]);
 
   for (let i = 0; i < 3; i += 1) {
     const y = 412 + i * 50;
-    const bg = scene.add
-      .rectangle(GAME_WIDTH / 2, y, 300, 40, COLORS.panel2, 0.95)
-      .setStrokeStyle(2, COLORS.frame, 0.9);
-    const label = scene.add
-      .text(GAME_WIDTH / 2, y, "", {
-        fontFamily: "monospace",
-        fontSize: "20px",
-        color: "#f3ffe9",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5);
+    const bg = scene.add.rectangle(GAME_WIDTH / 2, y, 300, 40, COLORS.panel2, 0.95).setStrokeStyle(2, COLORS.frame, 0.9);
+    const label = scene.add.text(GAME_WIDTH / 2, y, "", { fontFamily: "monospace", fontSize: "20px", color: "#f3ffe9", fontStyle: "bold" }).setOrigin(0.5);
     scene.finalScreen.buttons.push({ bg, label });
-    c.add(bg);
-    c.add(label);
+    c.add([bg, label]);
   }
 
   c.setVisible(false);
@@ -2750,40 +2439,28 @@ function showFinalScene(scene, payload) {
   scene.finalScreen.winnerGlow.setVisible(false);
   scene.finalScreen.winnerFlag.setVisible(false);
 
-  const winnerTeam =
-    typeof payload.winnerTeam === "number" ? payload.winnerTeam : -1;
-  if (winnerTeam >= 0 && winnerTeam < TEAMS.length) {
-    scene.finalScreen.winnerFlag.setTexture(flagTextureKey(winnerTeam));
-    scene.finalScreen.winnerFlag.setVisible(true);
-    scene.finalScreen.winnerGlow
-      .setVisible(true)
-      .setFillStyle(TEAMS[winnerTeam].primary, 0.18)
-      .setAlpha(0.14);
-
-    scene.tweens.add({
-      targets: scene.finalScreen.winnerGlow,
-      alpha: 0.24,
-      duration: 520,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-
-    if (payload.context === "tournamentChampion") {
-      playWinnerCelebration(scene, winnerTeam);
-    }
+  const isWinner = payload.context === "tournamentChampion";
+  scene.finalScreen.panel.setStrokeStyle(2, isWinner ? COLORS.accentSoft : COLORS.danger, 0.95);
+  scene.finalScreen.title.setColor(isWinner ? "#e8ff6a" : "#ff7f7f");
+  scene.finalScreen.trophy.setVisible(isWinner);
+  scene.finalScreen.winnerFlag.y = isWinner ? 146 : 114;
+  scene.finalScreen.winnerGlow.y = isWinner ? 146 : 114;
+  scene.finalScreen.winnerFx.y = isWinner ? 32 : 0;
+  
+  const wt = payload.winnerTeam ?? -1;
+  if (wt >= 0 && wt < TEAMS.length) {
+    scene.finalScreen.winnerFlag.setTexture(flagTextureKey(wt)).setVisible(true);
+    scene.finalScreen.winnerGlow.setVisible(true).setFillStyle(TEAMS[wt].primary, 0.18).setAlpha(0.14);
+    scene.tweens.add({ targets: scene.finalScreen.winnerGlow, alpha: 0.24, duration: 520, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    if (isWinner) playWinnerCelebration(scene, wt);
   }
 
   for (let i = 0; i < scene.finalScreen.buttons.length; i += 1) {
     const button = scene.finalScreen.buttons[i];
-    if (i < scene.state.finalOptions.length) {
-      button.bg.setVisible(true);
-      button.label.setVisible(true);
-      button.label.setText(scene.state.finalOptions[i]);
-    } else {
-      button.bg.setVisible(false);
-      button.label.setVisible(false);
-    }
+    const hasOpt = i < scene.state.finalOptions.length;
+    button.bg.setVisible(hasOpt);
+    button.label.setVisible(hasOpt);
+    if (hasOpt) button.label.setText(scene.state.finalOptions[i]);
   }
 
   updateFinalMenuHighlight(scene);
@@ -2801,27 +2478,15 @@ function playWinnerCelebration(scene, teamIndex) {
 
   for (let i = 0; i < 18; i += 1) {
     const piece = scene.add.rectangle(
-      cx,
-      cy,
-      Phaser.Math.Between(4, 8),
-      Phaser.Math.Between(8, 14),
-      i % 2 === 0 ? c1 : c2,
-      0.95,
-    );
-    piece.setAngle(Phaser.Math.Between(0, 180));
+      cx, cy, Phaser.Math.Between(4, 8), Phaser.Math.Between(8, 14), i % 2 === 0 ? c1 : c2, 0.95
+    ).setAngle(Phaser.Math.Between(0, 180));
     fx.add(piece);
 
     scene.tweens.add({
-      targets: piece,
-      x: cx + Phaser.Math.Between(-220, 220),
-      y: cy + Phaser.Math.Between(80, 235),
-      angle: piece.angle + Phaser.Math.Between(120, 420),
-      alpha: 0,
-      duration: Phaser.Math.Between(760, 1140),
-      ease: "Cubic.easeOut",
-      onComplete: () => {
-        piece.destroy();
-      },
+      targets: piece, x: cx + Phaser.Math.Between(-220, 220), y: cy + Phaser.Math.Between(80, 235),
+      angle: piece.angle + Phaser.Math.Between(120, 420), alpha: 0,
+      duration: Phaser.Math.Between(760, 1140), ease: "Cubic.easeOut",
+      onComplete: () => piece.destroy(),
     });
   }
 }
@@ -2877,24 +2542,14 @@ function handleFinalInput(scene, time) {
 }
 
 function updateFinalMenuHighlight(scene) {
-  const cursor = scene.state.finalMenu.cursor;
-  for (let i = 0; i < scene.finalScreen.buttons.length; i += 1) {
-    const button = scene.finalScreen.buttons[i];
-    if (!button.bg.visible) {
-      continue;
-    }
-    const active = i === cursor;
-    button.bg.setFillStyle(
-      active ? COLORS.accent : COLORS.panel2,
-      active ? 1 : 0.95,
-    );
-    button.bg.setStrokeStyle(
-      2,
-      active ? COLORS.text : COLORS.frame,
-      active ? 1 : 0.9,
-    );
-    button.label.setColor(active ? "#0d1f12" : "#f3ffe9");
-  }
+  const cur = scene.state.finalMenu.cursor;
+  scene.finalScreen.buttons.forEach((btn, i) => {
+    if (!btn.bg.visible) return;
+    const a = i === cur;
+    btn.bg.setFillStyle(a ? COLORS.accent : COLORS.panel2, a ? 1 : 0.95)
+          .setStrokeStyle(2, a ? COLORS.text : COLORS.frame, a ? 1 : 0.9);
+    btn.label.setColor(a ? "#0d1f12" : "#f3ffe9");
+  });
 }
 
 function hideAllScreens(scene) {
@@ -2969,10 +2624,6 @@ function normalizeIncomingKey(key) {
   return key.toLowerCase();
 }
 
-function isControlHeld(scene, controlCode) {
-  return scene.controls.held[controlCode] === true;
-}
-
 function consumeAnyPressedControl(scene, controlCodes) {
   for (const controlCode of controlCodes) {
     if (scene.controls.pressed[controlCode]) {
@@ -2984,46 +2635,18 @@ function consumeAnyPressedControl(scene, controlCodes) {
   return false;
 }
 
-function getHorizontalMenuAxis(controls) {
-  let axis = 0;
-  if (controls.held.P1_L || controls.held.P2_L) {
-    axis -= 1;
-  }
-  if (controls.held.P1_R || controls.held.P2_R) {
-    axis += 1;
-  }
-  return Phaser.Math.Clamp(axis, -1, 1);
+function getHorizontalMenuAxis(c) {
+  return Phaser.Math.Clamp((c.held.P1_R || c.held.P2_R ? 1 : 0) - (c.held.P1_L || c.held.P2_L ? 1 : 0), -1, 1);
+}
+function getVerticalMenuAxis(c) {
+  return Phaser.Math.Clamp((c.held.P1_D || c.held.P2_D ? 1 : 0) - (c.held.P1_U || c.held.P2_U ? 1 : 0), -1, 1);
 }
 
-function getVerticalMenuAxis(controls) {
-  let axis = 0;
-  if (controls.held.P1_U || controls.held.P2_U) {
-    axis -= 1;
-  }
-  if (controls.held.P1_D || controls.held.P2_D) {
-    axis += 1;
-  }
-  return Phaser.Math.Clamp(axis, -1, 1);
-}
-
-function getPlayerAxis(controls, player) {
-  const prefix = player === "P1" ? "P1" : "P2";
-  let x = 0;
-  let y = 0;
-
-  if (controls.held[`${prefix}_L`]) {
-    x -= 1;
-  }
-  if (controls.held[`${prefix}_R`]) {
-    x += 1;
-  }
-  if (controls.held[`${prefix}_U`]) {
-    y -= 1;
-  }
-  if (controls.held[`${prefix}_D`]) {
-    y += 1;
-  }
-
+function getPlayerAxis(controls, prefix) {
+  let x = controls.held[`${prefix}_R`] ? 1 : 0;
+  x -= controls.held[`${prefix}_L`] ? 1 : 0;
+  let y = controls.held[`${prefix}_D`] ? 1 : 0;
+  y -= controls.held[`${prefix}_U`] ? 1 : 0;
   return { x: Phaser.Math.Clamp(x, -1, 1), y: Phaser.Math.Clamp(y, -1, 1) };
 }
 
@@ -3301,103 +2924,66 @@ function drawFlag(g, code, w, h) {
   g.clear();
 
   if (code === "ARG") {
-    g.fillStyle(0x74c6ef, 1);
-    g.fillRect(0, 0, w, h / 3);
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(0, h / 3, w, h / 3);
-    g.fillStyle(0x74c6ef, 1);
-    g.fillRect(0, (h * 2) / 3, w, h / 3);
-    g.fillStyle(0xfacc15, 1);
-    g.fillCircle(w / 2, h / 2, 3);
+    const fg = (c, y, h2) => { g.fillStyle(c, 1); g.fillRect(0, y, w, h2); };
+    fg(0x74c6ef, 0, h / 3);
+    fg(0xffffff, h / 3, h / 3);
+    fg(0x74c6ef, (h * 2) / 3, h / 3);
+    g.fillStyle(0xfacc15, 1).fillCircle(w / 2, h / 2, 3);
     return;
   }
 
   if (code === "BRA") {
-    g.fillStyle(0x1f8c3f, 1);
-    g.fillRect(0, 0, w, h);
-    g.fillStyle(0xfacc15, 1);
-    g.fillPoints(
-      [
-        new Phaser.Geom.Point(w / 2, 3),
-        new Phaser.Geom.Point(w - 4, h / 2),
-        new Phaser.Geom.Point(w / 2, h - 3),
-        new Phaser.Geom.Point(4, h / 2),
-      ],
-      true,
-    );
-    g.fillStyle(0x1d4ed8, 1);
-    g.fillCircle(w / 2, h / 2, 5);
+    g.fillStyle(0x1f8c3f, 1).fillRect(0, 0, w, h);
+    g.fillStyle(0xfacc15, 1).fillPoints([
+        new Phaser.Geom.Point(w / 2, 3), new Phaser.Geom.Point(w - 4, h / 2),
+        new Phaser.Geom.Point(w / 2, h - 3), new Phaser.Geom.Point(4, h / 2),
+      ], true);
+    g.fillStyle(0x1d4ed8, 1).fillCircle(w / 2, h / 2, 5);
     return;
   }
 
   if (code === "URU") {
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(0, 0, w, h);
+    g.fillStyle(0xffffff, 1).fillRect(0, 0, w, h);
     g.fillStyle(0x60a5fa, 1);
-    for (let i = 0; i < 4; i += 1) {
-      g.fillRect(8, 3 + i * 6, w - 8, 2);
-    }
-    g.fillStyle(0xfacc15, 1);
-    g.fillCircle(4, 4, 3);
+    for (let i = 0; i < 4; i++) g.fillRect(8, 3 + i * 6, w - 8, 2);
+    g.fillStyle(0xfacc15, 1).fillCircle(4, 4, 3);
     return;
   }
 
   if (code === "COL") {
-    g.fillStyle(0xfacc15, 1);
-    g.fillRect(0, 0, w, h / 2);
-    g.fillStyle(0x1d4ed8, 1);
-    g.fillRect(0, h / 2, w, h / 4);
-    g.fillStyle(0xdc2626, 1);
-    g.fillRect(0, (h * 3) / 4, w, h / 4);
+    const fg = (c, y, h2) => { g.fillStyle(c, 1); g.fillRect(0, y, w, h2); };
+    fg(0xfacc15, 0, h / 2);
+    fg(0x1d4ed8, h / 2, h / 4);
+    fg(0xdc2626, (h * 3) / 4, h / 4);
     return;
   }
 
-  if (code === "MEX") {
-    g.fillStyle(0x15803d, 1);
-    g.fillRect(0, 0, w / 3, h);
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(w / 3, 0, w / 3, h);
-    g.fillStyle(0xdc2626, 1);
-    g.fillRect((w * 2) / 3, 0, w / 3, h);
-    g.fillStyle(0x15803d, 1);
-    g.fillCircle(w / 2, h / 2, 2);
+  if (code === "MEX" || code === "FRA") {
+    const fg = (c, x) => { g.fillStyle(c, 1); g.fillRect(x, 0, w / 3, h); };
+    fg(code === "MEX" ? 0x15803d : 0x1d4ed8, 0);
+    fg(0xffffff, w / 3);
+    fg(0xdc2626, (w * 2) / 3);
+    if (code === "MEX") g.fillStyle(0x15803d, 1).fillCircle(w / 2, h / 2, 2);
     return;
   }
 
   if (code === "USA") {
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(0, 0, w, h);
+    g.fillStyle(0xffffff, 1).fillRect(0, 0, w, h);
     g.fillStyle(0xdc2626, 1);
-    for (let i = 0; i < 6; i += 1) {
-      g.fillRect(0, i * 4, w, 2);
-    }
-    g.fillStyle(0x1e3a8a, 1);
-    g.fillRect(0, 0, 14, 11);
-    return;
-  }
-
-  if (code === "FRA") {
-    g.fillStyle(0x1d4ed8, 1);
-    g.fillRect(0, 0, w / 3, h);
-    g.fillStyle(0xffffff, 1);
-    g.fillRect(w / 3, 0, w / 3, h);
-    g.fillStyle(0xdc2626, 1);
-    g.fillRect((w * 2) / 3, 0, w / 3, h);
+    for (let i = 0; i < 6; i++) g.fillRect(0, i * 4, w, 2);
+    g.fillStyle(0x1e3a8a, 1).fillRect(0, 0, 14, 11);
     return;
   }
 
   if (code === "ESP") {
-    g.fillStyle(0xdc2626, 1);
-    g.fillRect(0, 0, w, h / 4);
-    g.fillStyle(0xfacc15, 1);
-    g.fillRect(0, h / 4, w, h / 2);
-    g.fillStyle(0xdc2626, 1);
-    g.fillRect(0, (h * 3) / 4, w, h / 4);
+    const fg = (c, y, h2) => { g.fillStyle(c, 1); g.fillRect(0, y, w, h2); };
+    fg(0xdc2626, 0, h / 4);
+    fg(0xfacc15, h / 4, h / 2);
+    fg(0xdc2626, (h * 3) / 4, h / 4);
     return;
   }
 
-  g.fillStyle(0x4b5563, 1);
-  g.fillRect(0, 0, w, h);
+  g.fillStyle(0x4b5563, 1).fillRect(0, 0, w, h);
 }
 
 function colorHex(color) {
