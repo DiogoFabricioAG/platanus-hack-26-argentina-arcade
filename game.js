@@ -1023,7 +1023,7 @@ function createMatchScreen(scene) {
   const reticleV = scene.add.rectangle(0, 0, 2, 28, COLORS.accent, 1);
   reticle.add([reticleRing, reticleH, reticleV]);
 
-  const keeperShadow = scene.add.ellipse(cx, 220, 66, 14, COLORS.shadow, 0.35);
+  const keeperShadow = scene.add.arc(cx, 220, 14, 180, 360, false, COLORS.shadow, 0.35).setScale(2.35, 1);
   const keeper = scene.add.image(cx, 207, "keeper-sprite").setTint(0x7ec4ff);
   const ball = scene.add.image(cx, 516, "ball-sprite");
   const crowdFlash = scene.add.rectangle(cx, 124, 704, 146, 0xf8fff1, 0).setBlendMode(Phaser.BlendModes.ADD);
@@ -1171,7 +1171,7 @@ function setupNextAttempt(scene, time) {
     .setTint(TEAMS[getTeamIndexBySide(match, keeperSide)].primary);
   scene.matchScreen.keeperShadow
     .setPosition(GAME_WIDTH / 2, 220)
-    .setScale(1, 1)
+    .setScale(2.35, 1)
     .setAlpha(0.35);
   scene.matchScreen.reticle.setVisible(true);
   scene.matchScreen.event.setText("");
@@ -1223,11 +1223,11 @@ function updateMatchHud(scene) {
   if (scene.state.phase === "matchInput") {
     const isShooterStage = match.pending.stage.startsWith("shooter");
     const isComboStage = match.pending.stage.endsWith("combo");
-    if (isShooterStage) {
-      scene.matchScreen.keeperShadow.setPosition(GAME_WIDTH / 2, 220).setScale(1, 1).setFillStyle(COLORS.shadow, 1).setAlpha(0.35);
-    } else {
-      scene.matchScreen.keeperShadow.setPosition(GAME_WIDTH / 2, aimToWorldY(AIM_Y_MAX)).setScale(4.5, 10.8).setFillStyle(0xffffff, 1).setAlpha(0.16);
-    }
+    scene.matchScreen.keeperShadow
+      .setPosition(GAME_WIDTH / 2, isShooterStage ? 220 : aimToWorldY(AIM_Y_MAX))
+      .setScale(isShooterStage ? 2.35 : 10.6, isShooterStage ? 1 : 5.8)
+      .setFillStyle(isShooterStage ? COLORS.shadow : 0xffffff, 1)
+      .setAlpha(isShooterStage ? 0.35 : 0.16);
     const activeSide = isShooterStage
       ? match.pending.shooterSide
       : match.pending.keeperSide;
@@ -1361,7 +1361,8 @@ function lockCurrentStage(scene, match, time) {
   scene.state.phase = "matchReveal";
   scene.matchScreen.keeperShadow
     .setPosition(GAME_WIDTH / 2, 220)
-    .setScale(1, 1)
+    .setScale(2.35, 1)
+    .setFillStyle(COLORS.shadow, 1)
     .setAlpha(0.35);
   scene.matchScreen.reticle.setVisible(false);
   scene.matchScreen.comboContainer.setVisible(false);
