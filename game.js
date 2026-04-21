@@ -1197,7 +1197,7 @@ function updateMatchHud(scene) {
   const shooterTeam = getTeamIndexBySide(match, shooterSide);
   const shooterName = teamCode(shooterTeam);
 
-  scene.matchScreen.title.setText(`${match.roundName} - SHOOTER POV`);
+  scene.matchScreen.title.setText(match.roundName);
   scene.matchScreen.leftFlag.setTexture(flagTextureKey(match.teamA));
   scene.matchScreen.leftTeam.setText(teamCode(match.teamA));
   scene.matchScreen.leftTeam.setColor(colorHex(TEAMS[match.teamA].primary));
